@@ -1,6 +1,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xft/Xft.h>
+#include <X11/extensions/Xrandr.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
@@ -92,6 +93,7 @@ void i3_ipc_send(char **ret, int fd, int type, char *payload) {
 }
 
 int main(int argc, char **argv) {
+	int i;
 
 	// ========= load the configuration =========
 
@@ -156,7 +158,45 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 
-		//create the window
+		//query i3 for the output list
+		char *output_json;
+		output_json = malloc(2048);
+		i3_ipc_send(&output_json, i3_sock, GET_OUTPUTS, "");
+		char label[64];
+		char *labelptr = label;
+		int inside = 0;
+		for(i = 0; i < strlen(output_json); i++) {
+			char c = *(output_json + i);
+			char d = *(output_json + i + 1);
+			if(c == '\"') {
+				if(inside == 0) inside = 1;
+				else {
+					inside = 0;
+					*labelptr = '\0';
+					printf("%s\n", label);
+					labelptr = label;
+				}
+			}
+			else if(c == ':' && d != '\"' && d != '{')
+				inside = 2; //inside a non-"-delimited value
+			else if((c == ',' || c == '}') && inside == 2) {
+				inside = 0;
+				*labelptr = '\0';
+				printf("%s\n", label);
+				labelptr = label;
+			}
+			else {
+				if(inside != 0) {
+					*labelptr = c;
+					labelptr++;
+				}
+			}
+		}
+		printf("%s\n", output_json);
+		return 0;
+
+
+		//create the window screen
 		Window w = XCreateSimpleWindow(d, DefaultRootWindow(d), 0, 0,
 									   config.width, config.depth, 0,
 									   0, 0);
@@ -214,9 +254,9 @@ int main(int argc, char **argv) {
 						   XA_PIXMAP, &actual_type_r, &actual_format_r,
 						   &nitems_r, &bytes_after_r, &prop_r);
 		if(actual_format_r == 0 || prop_r == NULL) {
-			fprintf(stderr, "could not read root bg for transparency.\n");
-			fprintf(stderr, "ensure your root window has the _XROOTPMAP_ID\n");
-			fprintf(stderr, "property.\n");
+			fprintf(stderr, "Failed to read root background for ");
+			fprintf(stderr, "transparency. Ensure your root window has the ");
+			fprintf(stderr, "_XROOTPMAP_ID property.\n");
 		}
 		else {
 			Pixmap bgp = *((Pixmap *)prop_r);
@@ -228,7 +268,6 @@ int main(int argc, char **argv) {
 							   config.width, config.depth, XAllPlanes(),
 							   ZPixmap);
 			//and apply the tint
-			int i;
 			for(i = 0; i < config.width * config.depth; i++) {
 				unsigned int *c = ((unsigned int *)((*bg).data)) + i;
 
@@ -356,6 +395,7 @@ int main(int argc, char **argv) {
 					}
 				}
 			}
+
 
 			//draw the tinted background
 			if(bg != NULL)
