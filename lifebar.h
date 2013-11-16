@@ -67,7 +67,7 @@ extern struct config *conf;
 
 int render_divider(XftDraw *, int, int);
 
-XftColor *prepare_xft_color(int, int, int, int);
+XftColor *prepare_xft_colour(Display *, int, int, int, int);
 
 int is_key_label(char *);
 

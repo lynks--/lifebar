@@ -5,9 +5,18 @@ struct config *conf;
 int main(int argc, char **argv) {
 	int i;
 
-	// ========= load the conf->ration =========
+	// ========= do early setup =========
 
-		struct config *conf = (struct config*)malloc(sizeof(struct config));
+		//open the display
+		Display *d = XOpenDisplay(NULL);
+		if(!d) {
+			fprintf(stderr, "failed to get x display :(\n");
+			return 1;
+		}
+
+	// ========= load the configuration =========
+
+		conf = (struct config*)malloc(sizeof(struct config));
 		conf->position = BOTTOM;
 		conf->depth = 20;
 		conf->tint = 60;
@@ -18,10 +27,10 @@ int main(int argc, char **argv) {
 		conf->divwidth = 1;
 		conf->divstyle = LINE;
 		strcpy(conf->ifone, "eth0");
-		conf->tintcol = prepare_xft_colour(255, 255, 255, 255); //TODO use this
-		conf->maincol = prepare_xft_colour(40, 40, 40, 255);
-		conf->timecol = prepare_xft_colour(40, 40, 40, 255);
-		conf->divcol = prepare_xft_colour(200, 50, 50, 255);
+		conf->tintcol = prepare_xft_colour(d, 255, 255, 255, 255); //TODO use this
+		conf->maincol = prepare_xft_colour(d, 20, 20, 20, 255);
+		conf->timecol = prepare_xft_colour(d, 20, 20, 20, 255);
+		conf->divcol = prepare_xft_colour(d, 50, 50, 70, 255);
 
 	// ========= open the connection to i3wm via unix domain sockets =========
 
@@ -50,13 +59,6 @@ int main(int argc, char **argv) {
 		}
 
 	// ========= do all the xlib, gfx and xft setup  =========
-
-		//open the display
-		Display *d = XOpenDisplay(NULL);
-		if(!d) {
-			fprintf(stderr, "failed to get x display :(\n");
-			return 1;
-		}
 
 		//query i3 for the output list
 		struct i3_output *output_list = get_i3_outputs(i3_sock);
@@ -189,44 +191,6 @@ int main(int argc, char **argv) {
 
 	// ========= prepare our rendering resources =========
 
-		XRenderColor xrc;
-
-		//background colour
-		xrc.red = 200 * 256;
-		xrc.green = 200 * 256;
-		xrc.blue = 200 * 256;
-		xrc.alpha = 255 * 256;
-		XftColor bg_colour;
-		XftColorAllocValue(d, DefaultVisual(d, 0), DefaultColormap(d, 0),
-						   &xrc, &bg_colour);
-
-		//time colour
-		xrc.red = 20 * 256;
-		xrc.green = 20 * 256;
-		xrc.blue = 30 * 256;
-		xrc.alpha = 255 * 256;
-		XftColor time_colour;
-		XftColorAllocValue(d, DefaultVisual(d, 0), DefaultColormap(d, 0),
-						   &xrc, &time_colour);
-
-		//date colour
-		xrc.red = 20 * 256;
-		xrc.green = 20 * 256;
-		xrc.blue = 40 * 256;
-		xrc.alpha = 255 * 256;
-		XftColor date_colour;
-		XftColorAllocValue(d, DefaultVisual(d, 0), DefaultColormap(d, 0),
-						   &xrc, &date_colour);
-
-		//divider colour
-		xrc.red = 50 * 256;
-		xrc.green = 50 * 256;
-		xrc.blue = 255 * 256;
-		xrc.alpha = 255 * 256;
-		XftColor divider_colour;
-		XftColorAllocValue(d, DefaultVisual(d, 0), DefaultColormap(d, 0),
-						   &xrc, &divider_colour);
-
 		//just to avoid calling it so regularly
 		Visual *v = DefaultVisual(d, 0);
 
@@ -240,7 +204,7 @@ int main(int argc, char **argv) {
 										 XFT_STYLE, XftTypeString, "bold",
 										 XFT_SIZE, XftTypeDouble, 8.0,
 										 NULL);
-		XftFont *date_font = XftFontOpen(d, 0,
+		XftFont *main_font = XftFontOpen(d, 0,
 										 XFT_FAMILY, XftTypeString, "sans",
 										 XFT_SIZE, XftTypeDouble, 8.0,
 										 NULL);
@@ -280,7 +244,7 @@ int main(int argc, char **argv) {
 				XPutImage(d, bb, gc, bg, 0, 0, 0, 0,
 						  width, conf->depth);
 			else
-				XftDrawRect(xft, &bg_colour, 0, 0,
+				XftDrawRect(xft, conf->tintcol, 0, 0,
 							width, conf->depth);
 
 			uint32_t trpadding = conf->rpadding;
@@ -295,10 +259,10 @@ int main(int argc, char **argv) {
 			XftTextExtents8(d, time_font, time_string,
 							strlen(time_string), &gi);
 			textheight = conf->depth - (conf->depth - gi.height) / 2;
-			XftDrawString8(xft, &time_colour, time_font,
+			XftDrawString8(xft, conf->timecol, time_font,
 						   width - (gi.width + trpadding), textheight,
 						   (XftChar8 *)time_string, strlen(time_string));
-			trpadding += gi.width;
+			trpadding += gi.width - 1;
 
 			//divider
 			trpadding += render_divider(xft, width - trpadding, LEFT);
@@ -306,17 +270,15 @@ int main(int argc, char **argv) {
 			//date
 			char date_string[256];
 			strftime(date_string, 256, conf->datefmt, now);
-			XftTextExtents8(d, date_font, date_string,
+			XftTextExtents8(d, main_font, date_string,
 							strlen(date_string), &gi);
-			XftDrawString8(xft, &date_colour, date_font,
+			XftDrawString8(xft, conf->maincol, main_font,
 						   width - (gi.width + trpadding), textheight, 
 						   (XftChar8 *)date_string, strlen(date_string));
 			trpadding += gi.width;
 
 			//divider
-			XftDrawRect(xft, &divider_colour,
-						width - (trpadding + conf->divpadding), 3, 1, 14);
-			trpadding += (conf->divpadding * 2) + 1;
+			trpadding += render_divider(xft, width - trpadding, LEFT);
 
 			//ifone
 			if(ifone != NULL) {
@@ -338,9 +300,9 @@ int main(int argc, char **argv) {
 				else sprintf(ifone_string, "%s: down", conf->ifone);
 
 				if(strlen(ifone_string) > 0) {
-					XftTextExtents8(d, date_font, ifone_string,
+					XftTextExtents8(d, main_font, ifone_string,
 									strlen(ifone_string), &gi);
-					XftDrawString8(xft, &date_colour, date_font,
+					XftDrawString8(xft, conf->maincol, main_font,
 								   width - (gi.width + trpadding), textheight, 
 								   (XftChar8 *)ifone_string,
 								   strlen(ifone_string));
