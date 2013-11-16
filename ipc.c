@@ -148,9 +148,8 @@ struct i3_output *get_i3_outputs(int i3_sock) {
 }
 
 struct i3_workspace *get_i3_workspaces(int i3_sock) {
-	//query i3 for the current workspaces and build a linked list
-	//note: this function returns a list in reverse order to the json array
 	struct i3_workspace *head = NULL;
+	struct i3_workspace *tail = NULL;
 
 	char *workspace_json;
 	i3_ipc_send(&workspace_json, i3_sock, GET_WORKSPACES, "");
@@ -175,13 +174,15 @@ struct i3_workspace *get_i3_workspaces(int i3_sock) {
 					struct i3_workspace *o =
 						(struct i3_workspace *)malloc(
 							sizeof(struct i3_workspace));
-					o->next = head;
-					head = o;
+					if(tail != NULL) tail->next = o;
+					else head = o;
+					o->next = NULL;
+					tail = o;
 				}
 
 				if(is_workspace_key_label(label)) strcpy(key, label);
 				else {
-					handle_workspace_value_label(head, key, label);
+					handle_workspace_value_label(tail, key, label);
 					key[0] = '\0';
 				}
 
@@ -193,7 +194,7 @@ struct i3_workspace *get_i3_workspaces(int i3_sock) {
 		else if((c == ',' || c == '}') && inside == 2) {
 			inside = 0;
 			*labelptr = '\0';
-			handle_workspace_value_label(head, key, label);
+			handle_workspace_value_label(tail, key, label);
 			key[0] = '\0';
 			labelptr = label;
 		}
