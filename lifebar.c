@@ -28,6 +28,142 @@
 #define TOP 0
 #define BOTTOM 1
 
+struct i3_output {
+	char name[16];
+	char active[16];
+	uint32_t x;
+	uint32_t y;
+	uint32_t width;
+	uint32_t height;
+	struct i3_output *next;
+};
+
+int i3_sock;
+
+int is_key_label(char *c) {
+	if(strcmp(c, "name") == 0) return 1;
+	if(strcmp(c, "active") == 0) return 1;
+	if(strcmp(c, "x") == 0) return 1;
+	if(strcmp(c, "y") == 0) return 1;
+	if(strcmp(c, "width") == 0) return 1;
+	if(strcmp(c, "height") == 0) return 1;
+	return 0;
+}
+
+void handle_value_label(struct i3_output* o, char *key, char *value) {
+	printf("handle value label: key=%s, value=%s\n");
+	if(strlen(key) > 0) {
+		if(strcmp(key, "name") == 0) strcpy(o->name, value);
+		else if(strcmp(key, "active") == 0) strcpy(o->active, value);
+		else if(strcmp(key, "x") == 0) o->x = atoi(value);
+		else if(strcmp(key, "y") == 0) o->y = atoi(value);
+		else if(strcmp(key, "width") == 0) o->width = atoi(value);
+		else if(strcmp(key, "height") == 0) o->height = atoi(value);
+	}
+}
+
+void debug_i3_output(struct i3_output *head) {
+	while(head != NULL) {
+		printf("=========\nname=%s\nactive=%s\nx=%d\ny=%d\nwidth=%d\nheight=%d\n",
+				head->name, head->active, head->x, head->y, head->width, head->height);
+		head = head->next;
+	}
+}
+
+void i3_ipc_send(char **ret, int type, char *payload) {
+	//we pack the buffer and send it
+	int i;
+	int plen = strlen(payload);
+	char buf[plen + 14];
+	strcpy(buf, "i3-ipc");
+	*((int *)(buf +  6)) = plen;
+	*((int *)(buf + 10)) = type;
+	strcpy(buf + 14, payload);
+	write(i3_sock, buf, plen + 14);
+
+	//and read the response
+	char *recv_buf = malloc(4096);
+	ssize_t t = recv(i3_sock, recv_buf, 4096, 0);
+	if(t == -1) {
+		perror("recv");
+		recv_buf[0] = '\0';
+	}
+	else recv_buf[t] = '\0';
+	*ret = recv_buf + 14; //skip over the header
+}
+
+void free_ipc_result(char *c) {
+	//this function exists because we have to free the actual malloced
+	//result, which included the 14 byte header we skipped over
+	free(c - 14);
+}
+
+struct i3_output *get_i3_outputs() {
+	//query i3 for the current outputs and build a linked list
+	//note: this function returns a list in reverse order to the json array
+	struct i3_output *head = NULL;
+
+	char *output_json;
+	i3_ipc_send(&output_json, GET_OUTPUTS, "");
+
+	char key[64];
+	char label[64];
+	char *labelptr = label;
+
+	int inside = 0;
+	int i;
+	for(i = 0; i < strlen(output_json); i++) {
+		char c = *(output_json + i);
+		char d = *(output_json + i + 1);
+		if(c == '\"') {
+			if(inside == 0) inside = 1;
+			else {
+				inside = 0;
+				*labelptr = '\0';
+				if(strcmp(label, "name") == 0) {
+					//we are entering a new output block
+					//we create a new struct pointing to the current head
+					struct i3_output o;
+					printf("o=%08x\n", &o);
+					o.next = head;
+					printf("o.next=%08x\n", o.next);
+					head = &o;
+					printf("NEW HEAD\n");
+					printf("head=%08x, head.next=%08x\n", head, head->next);
+					debug_i3_output(head);
+					printf("+++++\n");
+
+				}
+
+				if(is_key_label(label)) strcpy(key, label);
+				else {
+					handle_value_label(head, key, label);
+					key[0] = '\0';
+				}
+
+				labelptr = label; //reset the label pointer
+			}
+		}
+		else if(c == ':' && d != '\"' && d != '{')
+			inside = 2; //inside a non-"-delimited value
+		else if((c == ',' || c == '}') && inside == 2) {
+			inside = 0;
+			*labelptr = '\0';
+			handle_value_label(head, key, label);
+			key[0] = '\0';
+			labelptr = label;
+		}
+		else {
+			if(inside != 0) {
+				*labelptr = c;
+				labelptr++;
+			}
+		}
+	}
+	free_ipc_result(output_json);
+	return head;
+}
+
 void get_i3_sock(char **ret) {
 	int pid, err;
 	int pipefd[2];
@@ -70,27 +206,7 @@ void get_i3_sock(char **ret) {
 	strcpy(*ret, buf);
 }
 
-void i3_ipc_send(char **ret, int fd, int type, char *payload) {
-	//we pack the buffer and send it
-	int i;
-	int plen = strlen(payload);
-	char buf[plen + 14];
-	strcpy(buf, "i3-ipc");
-	*((int *)(buf +  6)) = plen;
-	*((int *)(buf + 10)) = type;
-	strcpy(buf + 14, payload);
-	write(fd, buf, plen + 14);
 
-	//and read the response
-	char *recv_buf = malloc(1024);
-	ssize_t t = recv(fd, recv_buf, 1024, 0);
-	if(t == -1) {
-		perror("recv");
-		recv_buf[0] = '\0';
-	}
-	else recv_buf[t] = '\0';
-	*ret = recv_buf + 14;
-}
 
 int main(int argc, char **argv) {
 	int i;
@@ -135,9 +251,10 @@ int main(int argc, char **argv) {
 		struct sockaddr_un i3_sockaddr;
 		i3_sockaddr.sun_family = AF_UNIX;
 		strcpy(i3_sockaddr.sun_path, i3_sockpath);
+		free(i3_sockpath);
 
 		//create and connect the socket
-		int i3_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+		i3_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 		int addrlen = strlen(i3_sockaddr.sun_path)
 						+ sizeof(i3_sockaddr.sun_family);
 		if(i3_sock == -1) {
@@ -159,42 +276,7 @@ int main(int argc, char **argv) {
 		}
 
 		//query i3 for the output list
-		char *output_json;
-		output_json = malloc(2048);
-		i3_ipc_send(&output_json, i3_sock, GET_OUTPUTS, "");
-		char label[64];
-		char *labelptr = label;
-		int inside = 0;
-		for(i = 0; i < strlen(output_json); i++) {
-			char c = *(output_json + i);
-			char d = *(output_json + i + 1);
-			if(c == '\"') {
-				if(inside == 0) inside = 1;
-				else {
-					inside = 0;
-					*labelptr = '\0';
-					printf("%s\n", label);
-					labelptr = label;
-				}
-			}
-			else if(c == ':' && d != '\"' && d != '{')
-				inside = 2; //inside a non-"-delimited value
-			else if((c == ',' || c == '}') && inside == 2) {
-				inside = 0;
-				*labelptr = '\0';
-				printf("%s\n", label);
-				labelptr = label;
-			}
-			else {
-				if(inside != 0) {
-					*labelptr = c;
-					labelptr++;
-				}
-			}
-		}
-		printf("%s\n", output_json);
-		return 0;
-
+		struct i3_output *output_list = get_i3_outputs();
 
 		//create the window screen
 		Window w = XCreateSimpleWindow(d, DefaultRootWindow(d), 0, 0,
