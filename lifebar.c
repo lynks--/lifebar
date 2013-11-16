@@ -1,26 +1,27 @@
 #include "lifebar.h"
 
-int i3_sock;
-
-int render_divider(XftDraw *xft, int x, int d) {
-
-}
+struct config *conf;
 
 int main(int argc, char **argv) {
 	int i;
 
 	// ========= load the conf->ration =========
 
-		//TODO externalise config
 		struct config *conf = (struct config*)malloc(sizeof(struct config));
 		conf->position = BOTTOM;
 		conf->depth = 20;
-		conf->tint = 50; //-60-60 ish, basic whitewash
+		conf->tint = 60;
 		strcpy(conf->datefmt, "%A %e %B %Y");
 		strcpy(conf->timefmt, "%H:%M");
 		conf->rpadding = 10;
 		conf->divpadding = 10;
+		conf->divwidth = 1;
+		conf->divstyle = LINE;
 		strcpy(conf->ifone, "eth0");
+		conf->tintcol = prepare_xft_colour(255, 255, 255, 255); //TODO use this
+		conf->maincol = prepare_xft_colour(40, 40, 40, 255);
+		conf->timecol = prepare_xft_colour(40, 40, 40, 255);
+		conf->divcol = prepare_xft_colour(200, 50, 50, 255);
 
 	// ========= open the connection to i3wm via unix domain sockets =========
 
@@ -36,7 +37,7 @@ int main(int argc, char **argv) {
 		free(i3_sockpath);
 
 		//create and connect the socket
-		i3_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+		int i3_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 		int addrlen = strlen(i3_sockaddr.sun_path)
 						+ sizeof(i3_sockaddr.sun_family);
 		if(i3_sock == -1) {
@@ -58,7 +59,7 @@ int main(int argc, char **argv) {
 		}
 
 		//query i3 for the output list
-		struct i3_output *output_list = get_i3_outputs();
+		struct i3_output *output_list = get_i3_outputs(i3_sock);
 		//for now, we just iterate until we find the first active output
 		//TODO rewrite for multiple outputs
 		struct i3_output *active = output_list;

@@ -29,7 +29,7 @@ void debug_i3_output(struct i3_output *head) {
 	}
 }
 
-void i3_ipc_send(char **ret, int type, char *payload) {
+void i3_ipc_send(char **ret, int i3_sock, int type, char *payload) {
 	//we pack the buffer and send it
 	int i;
 	int plen = strlen(payload);
@@ -57,13 +57,13 @@ void free_ipc_result(char *c) {
 	free(c - 14);
 }
 
-struct i3_output *get_i3_outputs() {
+struct i3_output *get_i3_outputs(int i3_sock) {
 	//query i3 for the current outputs and build a linked list
 	//note: this function returns a list in reverse order to the json array
 	struct i3_output *head = NULL;
 
 	char *output_json;
-	i3_ipc_send(&output_json, GET_OUTPUTS, "");
+	i3_ipc_send(&output_json, i3_sock, GET_OUTPUTS, "");
 
 	char key[64];
 	char label[64];
