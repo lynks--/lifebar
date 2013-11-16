@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
 		strcpy(conf->datefmt, "%A %e %B %Y");
 		strcpy(conf->timefmt, "%H:%M");
 		conf->rpadding = 10;
+		conf->lpadding = 10;
 		conf->divpadding = 10;
 		conf->divwidth = 1;
 		conf->divstyle = LINE;
@@ -31,6 +32,8 @@ int main(int argc, char **argv) {
 		conf->maincol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->timecol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->divcol = prepare_xft_colour(d, 50, 50, 70, 255);
+		conf->viswscol = prepare_xft_colour(d, 0, 0, 0, 255);
+		conf->inviswscol = prepare_xft_colour(d, 60, 60, 60, 255);
 
 	// ========= open the connection to i3wm via unix domain sockets =========
 
@@ -153,7 +156,7 @@ int main(int argc, char **argv) {
 				unsigned int *c = ((unsigned int *)((*bg).data)) + i;
 
 				int tint = conf->tint;
-				if(i < width) tint *= 2; //top line
+				//if(i < width) tint *= 2; //top line
 
 				unsigned char *red = ((char *)c) + 2;
 				unsigned char *green = ((char *)c) + 1;
@@ -209,114 +212,145 @@ int main(int argc, char **argv) {
 										 XFT_SIZE, XftTypeDouble, 8.0,
 										 NULL);
 
+		uint32_t textheight = 0;
+		XGlyphInfo gi;
+		XftTextExtents8(d, main_font, "E", 1, &gi);
+		textheight = conf->depth - (conf->depth - gi.height) / 2;
+
 	// ========= start the main loop =========
 
 		int run = 1;
 		while(run) {
-			//lookup interface addresses
-			struct ifaddrs *ifap = NULL;
-			struct ifaddrs *ifone = NULL;
-			if(getifaddrs(&ifap)) perror("getifaddrs");
-			else {
-				while(1) {
-					if((strcmp(ifap->ifa_name, conf->ifone) == 0) &&
-					   ((ifap->ifa_addr->sa_family == AF_INET) ||
-					    (ifap->ifa_addr == NULL))) { //this is not working for "down" interface
-						ifone = ifap;
-						break;
-					}
-					else {
-						if(ifap->ifa_next == NULL) {
-							fprintf(stderr, "failed to find interface \"%s\"",
-									conf->ifone);
+
+			// ========= gather information for this iteration =========
+
+				//lookup interface addresses
+				struct ifaddrs *ifap = NULL;
+				struct ifaddrs *ifone = NULL;
+				if(getifaddrs(&ifap)) perror("getifaddrs");
+				else {
+					while(1) {
+						if((strcmp(ifap->ifa_name, conf->ifone) == 0) &&
+						   ((ifap->ifa_addr->sa_family == AF_INET) ||
+							(ifap->ifa_addr == NULL))) { //this is not working for "down" interface
+							ifone = ifap;
 							break;
 						}
 						else {
-							ifap = ifap->ifa_next;
-							continue;
+							if(ifap->ifa_next == NULL) {
+								fprintf(stderr, "failed to find interface \"%s\"",
+										conf->ifone);
+								break;
+							}
+							else {
+								ifap = ifap->ifa_next;
+								continue;
+							}
 						}
 					}
 				}
-			}
 
-			//draw the tinted background
-			if(bg != NULL)
-				XPutImage(d, bb, gc, bg, 0, 0, 0, 0,
-						  width, conf->depth);
-			else
-				XftDrawRect(xft, conf->tintcol, 0, 0,
-							width, conf->depth);
+				//query i3 for workspace information
+				struct i3_workspace *workspaces_list = get_i3_workspaces(i3_sock);
 
-			uint32_t trpadding = conf->rpadding;
-			uint32_t textheight = 0;
+			// ========= refresh the canvas for this iteration =========
 
-			//time
-			time_t rawnow = time(NULL);
-			struct tm *now = localtime(&rawnow);
-			char time_string[128];
-			strftime(time_string, 128, conf->timefmt, now);
-			XGlyphInfo gi;
-			XftTextExtents8(d, time_font, time_string,
-							strlen(time_string), &gi);
-			textheight = conf->depth - (conf->depth - gi.height) / 2;
-			XftDrawString8(xft, conf->timecol, time_font,
-						   width - (gi.width + trpadding), textheight,
-						   (XftChar8 *)time_string, strlen(time_string));
-			trpadding += gi.width - 1;
+				//draw the tinted background
+				if(bg != NULL)
+					XPutImage(d, bb, gc, bg, 0, 0, 0, 0,
+							  width, conf->depth);
+				else
+					XftDrawRect(xft, conf->tintcol, 0, 0,
+								width, conf->depth);
 
-			//divider
-			trpadding += render_divider(xft, width - trpadding, LEFT);
+			// ========= left side =========
 
-			//date
-			char date_string[256];
-			strftime(date_string, 256, conf->datefmt, now);
-			XftTextExtents8(d, main_font, date_string,
-							strlen(date_string), &gi);
-			XftDrawString8(xft, conf->maincol, main_font,
-						   width - (gi.width + trpadding), textheight, 
-						   (XftChar8 *)date_string, strlen(date_string));
-			trpadding += gi.width;
+				uint32_t tlpadding = conf->lpadding;
 
-			//divider
-			trpadding += render_divider(xft, width - trpadding, LEFT);
-
-			//ifone
-			if(ifone != NULL) {
-				char ifone_string[256];
-				ifone_string[0] = '\0';
-
-				//if this is an ipv4 or ipv6 address
-				if((ifone->ifa_addr->sa_family == AF_INET) ||
-				   (ifone->ifa_addr->sa_family == AF_INET6)) {
-					struct sockaddr_in *addr =
-						(struct sockaddr_in *)ifone->ifa_addr;
-					char readable_addr[256];
-					inet_ntop(addr->sin_family, &(addr->sin_addr),
-							  readable_addr, 256);
-				
-					sprintf(ifone_string, "%s: %s", conf->ifone,
-							readable_addr);
+				//workspaces
+				while(workspaces_list != NULL) {
+					XftColor *c;
+					if(strcmp(workspaces_list->visible, "true") == 0)
+						c = conf->viswscol;
+					else c = conf->inviswscol;
+					XftDrawString8(xft, c, main_font, tlpadding, textheight,
+								   (XftChar8 *)workspaces_list->name,
+								   strlen(workspaces_list->name));
+					tlpadding += 10;
+					tlpadding += render_divider(xft, tlpadding, LEFT);
+					workspaces_list = workspaces_list->next;
 				}
-				else sprintf(ifone_string, "%s: down", conf->ifone);
 
-				if(strlen(ifone_string) > 0) {
-					XftTextExtents8(d, main_font, ifone_string,
-									strlen(ifone_string), &gi);
-					XftDrawString8(xft, conf->maincol, main_font,
-								   width - (gi.width + trpadding), textheight, 
-								   (XftChar8 *)ifone_string,
-								   strlen(ifone_string));
-					trpadding += gi.width;
+			// ========= right side =========
+
+				uint32_t trpadding = conf->rpadding;
+
+				//time
+				time_t rawnow = time(NULL);
+				struct tm *now = localtime(&rawnow);
+				char time_string[128];
+				strftime(time_string, 128, conf->timefmt, now);
+				XftTextExtents8(d, time_font, time_string,
+								strlen(time_string), &gi);
+				XftDrawString8(xft, conf->timecol, time_font,
+							   width - (gi.width + trpadding), textheight,
+							   (XftChar8 *)time_string, strlen(time_string));
+				trpadding += gi.width - 1;
+
+				//divider
+				trpadding += render_divider(xft, width - trpadding, RIGHT);
+
+				//date
+				char date_string[256];
+				strftime(date_string, 256, conf->datefmt, now);
+				XftTextExtents8(d, main_font, date_string,
+								strlen(date_string), &gi);
+				XftDrawString8(xft, conf->maincol, main_font,
+							   width - (gi.width + trpadding), textheight, 
+							   (XftChar8 *)date_string, strlen(date_string));
+				trpadding += gi.width;
+
+				//divider
+				trpadding += render_divider(xft, width - trpadding, RIGHT);
+
+				//ifone
+				if(ifone != NULL) {
+					char ifone_string[256];
+					ifone_string[0] = '\0';
+
+					//if this is an ipv4 or ipv6 address
+					if((ifone->ifa_addr->sa_family == AF_INET) ||
+					   (ifone->ifa_addr->sa_family == AF_INET6)) {
+						struct sockaddr_in *addr =
+							(struct sockaddr_in *)ifone->ifa_addr;
+						char readable_addr[256];
+						inet_ntop(addr->sin_family, &(addr->sin_addr),
+								  readable_addr, 256);
+					
+						sprintf(ifone_string, "%s: %s", conf->ifone,
+								readable_addr);
+					}
+					else sprintf(ifone_string, "%s: down", conf->ifone);
+
+					if(strlen(ifone_string) > 0) {
+						XftTextExtents8(d, main_font, ifone_string,
+										strlen(ifone_string), &gi);
+						XftDrawString8(xft, conf->maincol, main_font,
+									   width - (gi.width + trpadding), textheight, 
+									   (XftChar8 *)ifone_string,
+									   strlen(ifone_string));
+						trpadding += gi.width;
+					}
 				}
-			}
 
+			// ========= finish this frame =========
 
-			//draw the back buffer and send to the screen
-			XCopyArea(d, bb, w, gc, 0, 0, width, conf->depth, 0, 0);
-			XFlush(d);
+				//draw the back buffer and send to the screen
+				XCopyArea(d, bb, w, gc, 0, 0, width, conf->depth, 0, 0);
+				XFlush(d);
 
-			//control fps
-			usleep(500000);
+				//control fps
+				usleep(500000);
 		}
 
 }

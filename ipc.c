@@ -1,6 +1,6 @@
 #include "lifebar.h"
 
-int is_key_label(char *c) {
+int is_output_key_label(char *c) {
 	if(strcmp(c, "name") == 0) return 1;
 	if(strcmp(c, "active") == 0) return 1;
 	if(strcmp(c, "x") == 0) return 1;
@@ -10,7 +10,7 @@ int is_key_label(char *c) {
 	return 0;
 }
 
-void handle_value_label(struct i3_output *o, char *key, char *value) {
+void handle_output_value_label(struct i3_output *o, char *key, char *value) {
 	if(strlen(key) > 0) {
 		if(strcmp(key, "name") == 0) strcpy(o->name, value);
 		else if(strcmp(key, "active") == 0) strcpy(o->active, value);
@@ -21,10 +21,40 @@ void handle_value_label(struct i3_output *o, char *key, char *value) {
 	}
 }
 
+int is_workspace_key_label(char *c) {
+	if(strcmp(c, "name") == 0) return 1;
+	if(strcmp(c, "visible") == 0) return 1;
+	if(strcmp(c, "focused") == 0) return 1;
+	if(strcmp(c, "urgent") == 0) return 1;
+	if(strcmp(c, "output") == 0) return 1;
+	return 0;
+}
+
+void handle_workspace_value_label(struct i3_workspace *o,
+								  char *key, char *value) {
+	if(strlen(key) > 0) {
+		if(strcmp(key, "name") == 0) strcpy(o->name, value);
+		else if(strcmp(key, "visible") == 0) strcpy(o->visible, value);
+		else if(strcmp(key, "focused") == 0) strcpy(o->focused, value);
+		else if(strcmp(key, "urgent") == 0) strcpy(o->urgent, value);
+		else if(strcmp(key, "output") == 0) strcpy(o->output, value);
+	}
+}
+
 void debug_i3_output(struct i3_output *head) {
 	while(head != NULL) {
-		printf("=========\nname=%s\nactive=%s\nx=%d\ny=%d\nwidth=%d\nheight=%d\n",
-				head->name, head->active, head->x, head->y, head->width, head->height);
+		printf("=========\nname=%s\nactive=%s\nx=%d\ny=%d\nwidth=%d\nheight=\
+%d\n",
+				head->name, head->active, head->x, head->y, head->width,
+				head->height);
+		head = head->next;
+	}
+}
+
+void debug_i3_workspace(struct i3_workspace *head) {
+	while(head != NULL) {
+		printf("=========\nname=%s\nvisible=%s\noutput=%s\n", head->name,
+			   head->visible, head->output);
 		head = head->next;
 	}
 }
@@ -88,9 +118,9 @@ struct i3_output *get_i3_outputs(int i3_sock) {
 					head = o;
 				}
 
-				if(is_key_label(label)) strcpy(key, label);
+				if(is_output_key_label(label)) strcpy(key, label);
 				else {
-					handle_value_label(head, key, label);
+					handle_output_value_label(head, key, label);
 					key[0] = '\0';
 				}
 
@@ -102,7 +132,7 @@ struct i3_output *get_i3_outputs(int i3_sock) {
 		else if((c == ',' || c == '}') && inside == 2) {
 			inside = 0;
 			*labelptr = '\0';
-			handle_value_label(head, key, label);
+			handle_output_value_label(head, key, label);
 			key[0] = '\0';
 			labelptr = label;
 		}
@@ -114,6 +144,67 @@ struct i3_output *get_i3_outputs(int i3_sock) {
 		}
 	}
 	free_ipc_result(output_json);
+	return head;
+}
+
+struct i3_workspace *get_i3_workspaces(int i3_sock) {
+	//query i3 for the current workspaces and build a linked list
+	//note: this function returns a list in reverse order to the json array
+	struct i3_workspace *head = NULL;
+
+	char *workspace_json;
+	i3_ipc_send(&workspace_json, i3_sock, GET_WORKSPACES, "");
+
+	char key[64];
+	char label[64];
+	char *labelptr = label;
+
+	int inside = 0;
+	int i;
+	for(i = 0; i < strlen(workspace_json); i++) {
+		char c = *(workspace_json + i);
+		char d = *(workspace_json + i + 1);
+		if(c == '\"') {
+			if(inside == 0) inside = 1;
+			else {
+				inside = 0;
+				*labelptr = '\0';
+				if(strcmp(label, "name") == 0) {
+					//we are entering a new workspace block
+					//we create a new struct pointing to the current head
+					struct i3_workspace *o =
+						(struct i3_workspace *)malloc(
+							sizeof(struct i3_workspace));
+					o->next = head;
+					head = o;
+				}
+
+				if(is_workspace_key_label(label)) strcpy(key, label);
+				else {
+					handle_workspace_value_label(head, key, label);
+					key[0] = '\0';
+				}
+
+				labelptr = label; //reset the label pointer
+			}
+		}
+		else if(c == ':' && d != '\"' && d != '{')
+			inside = 2; //inside a non-"-delimited value
+		else if((c == ',' || c == '}') && inside == 2) {
+			inside = 0;
+			*labelptr = '\0';
+			handle_workspace_value_label(head, key, label);
+			key[0] = '\0';
+			labelptr = label;
+		}
+		else {
+			if(inside != 0) {
+				*labelptr = c;
+				labelptr++;
+			}
+		}
+	}
+	free_ipc_result(workspace_json);
 	return head;
 }
 

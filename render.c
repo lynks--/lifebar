@@ -1,11 +1,21 @@
 #include "lifebar.h"
 
 int render_divider(XftDraw *xft, int x, int d) {
-	if(conf->divstyle == LINE) {
-		XftDrawRect(xft, conf->divcol,
-					x - (conf->divpadding + conf->divwidth), 3,
-					conf->divwidth, 14);
-		return (conf->divpadding * 2) + conf->divwidth + 1;
+	if(d == RIGHT) {
+		if(conf->divstyle == LINE) {
+			XftDrawRect(xft, conf->divcol,
+						x - (conf->divpadding + conf->divwidth), 3,
+						conf->divwidth, 14);
+			return (conf->divpadding * 2) + conf->divwidth + 1;
+		}
+	}
+	else if(d == LEFT) {
+		if(conf->divstyle == LINE) {
+			XftDrawRect(xft, conf->divcol,
+						x + conf->divpadding, 3,
+						conf->divwidth, 14);
+			return (conf->divpadding * 2) + conf->divwidth + 1;
+		}
 	}
 }
 

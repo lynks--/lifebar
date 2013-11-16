@@ -46,6 +46,15 @@ struct i3_output {
 	struct i3_output *next;
 };
 
+struct i3_workspace {
+	char name[64];
+	char visible[16];
+	char focused[16];
+	char urgent[16];
+	char output[16];
+	struct i3_workspace *next;
+};
+
 struct config {
 	uint32_t position;		//TOP or BOTTOM
 	uint32_t depth;			//bar depth, eg 20
@@ -53,6 +62,7 @@ struct config {
 	char datefmt[64];		//date strftime format string
 	char timefmt[64];		//time strftime format string
 	uint32_t rpadding;		//padding on right screen edge
+	uint32_t lpadding;		//padding on left screen edge
 	uint32_t divpadding;	//padding either side of divider lines
 	uint32_t divwidth;		//divider line width
 	uint32_t divstyle;		//divider line style (LINE or GROOVE)
@@ -61,6 +71,8 @@ struct config {
 	XftColor *maincol;		//main text colour
 	XftColor *timecol;		//time text colour
 	XftColor *divcol;		//divider line colour for line divider style
+	XftColor *viswscol;		//text colour for visible workspace
+	XftColor *inviswscol;	//text colour for invisible workspace
 };
 
 extern struct config *conf;
@@ -80,5 +92,7 @@ void i3_ipc_send(char **, int, int, char *);
 void free_ipc_result(char *);
 
 struct i3_output *get_i3_outputs();
+
+struct i3_workspace *get_i3_workspaces();
 
 void get_i3_sockpath(char **);
