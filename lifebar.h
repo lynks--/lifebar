@@ -55,6 +55,16 @@ struct i3_workspace {
 	struct i3_workspace *next;
 };
 
+struct instance {
+	Window w;
+	XImage *bg;	//background
+	Pixmap bb;	//backbuffer
+	GC gc;		//graphics context
+	XftDraw *xft;
+	struct i3_output *output;
+	struct instance *next;
+};
+
 struct config {
 	uint32_t position;		//TOP or BOTTOM
 	uint32_t depth;			//bar depth, eg 20

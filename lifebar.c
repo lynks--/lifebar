@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 		conf->divwidth = 1;
 		conf->divstyle = LINE;
 		strcpy(conf->ifone, "eth0");
-		conf->tintcol = prepare_xft_colour(d, 255, 255, 255, 255); //TODO use this
+		conf->tintcol = prepare_xft_colour(d, 250, 250, 255, 255); //TODO use this
 		conf->maincol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->timecol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->divcol = prepare_xft_colour(d, 50, 50, 70, 255);
@@ -63,71 +63,8 @@ int main(int argc, char **argv) {
 
 	// ========= do all the xlib, gfx and xft setup  =========
 
-		//query i3 for the output list
-		struct i3_output *output_list = get_i3_outputs(i3_sock);
-		//for now, we just iterate until we find the first active output
-		//TODO rewrite for multiple outputs
-		struct i3_output *active = output_list;
-		while(active->next != NULL) {
-			if(strcmp(active->active, "true") == 0) {
-				printf("found output: %s @ %dx%d\n", active->name,
-					   active->width, active->height);
-				break;
-			}
-			active = active->next;
-		}
-		char *out_name = active->name;
-		int width = active->width;
-		int height = active->height;
-
-		//create the window screen
-		Window w = XCreateSimpleWindow(d, DefaultRootWindow(d), 0, 0,
-									   width, conf->depth, 0,
-									   0, 0);
-
-		//set this window type to dock so i3wm knows its a toolbar
-		Atom a_win_type = XInternAtom(d, "_NET_WM_WINDOW_TYPE", False);
-		Atom a_dock = XInternAtom(d, "_NET_WM_WINDOW_TYPE_DOCK", False);
-		XChangeProperty(d, w, a_win_type, XA_ATOM, 32,
-						PropModeReplace, (unsigned char*)&a_dock, 1);
-
-		//set this window position to top/bottom from config
-		//NOTE: 64 bit arch requires these to be longs, despite the '32'
-		//		element size provided in XChangeProperty below, go figure.
-		struct {
-			long left;
-			long right;
-			long top;
-			long bottom;
-			long left_start_y;
-			long left_end_y;
-			long right_start_y;
-			long right_end_y;
-			long top_start_x;
-			long top_end_x;
-			long bottom_start_x;
-			long bottom_end_x;
-		} strut_partial;
-		memset(&strut_partial, 0, sizeof(strut_partial));
-		switch(conf->position) {
-			case TOP:
-				strut_partial.top = conf->depth;
-				strut_partial.top_start_x = 0;
-				strut_partial.top_end_x = width;
-				break;
-			case BOTTOM:
-				strut_partial.bottom = conf->depth;
-				strut_partial.bottom_start_x = 0;
-				strut_partial.bottom_end_x = width;
-				break;
-		}
-		Atom a_win_strut = XInternAtom(d, "_NET_WM_STRUT_PARTIAL", False);
-		Atom a_win_cardinal = XInternAtom(d, "CARDINAL", False);
-		XChangeProperty(d, w, a_win_strut, a_win_cardinal, 32,
-						PropModeReplace, (unsigned char*)&strut_partial, 12);
-
 		//grab the root pixmap for pseudo transparency
-		XImage *bg = NULL;
+		Pixmap bgp = 0;
 		Atom a_root_pmap = XInternAtom(d, "_XROOTPMAP_ID", False);
 		Atom actual_type_r;
 		int actual_format_r;
@@ -143,65 +80,163 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "_XROOTPMAP_ID property.\n");
 		}
 		else {
-			Pixmap bgp = *((Pixmap *)prop_r);
-			if(conf->position == TOP) 
-				bg = XGetImage(d, bgp, 0, 0, width, conf->depth,
-							   XAllPlanes(), ZPixmap);
-			else
-				bg = XGetImage(d, bgp, 0, height - conf->depth,
-							   width, conf->depth, XAllPlanes(),
-							   ZPixmap);
-			//and apply the tint
-			for(i = 0; i < width * conf->depth; i++) {
-				unsigned int *c = ((unsigned int *)((*bg).data)) + i;
+			//this pixmap is our entire background image, across all outputs
+			bgp = *((Pixmap *)prop_r);
+		}
 
-				int tint = conf->tint;
-				//if(i < width) tint *= 2; //top line
-
-				unsigned char *red = ((char *)c) + 2;
-				unsigned char *green = ((char *)c) + 1;
-				unsigned char *blue = ((char *)c) + 0;
-
-				if(((int)*red + tint) > 255) *red = 255;
-				else if(((int)*red + tint) < 0) *red = 0;
-				else *red += tint;
-
-				if(((int)*green + tint) > 255) *green = 255;
-				else if(((int)*green + tint) < 0) *green = 0;
-				else *green += tint;
-
-				if(((int)*blue + tint) > 255) *blue = 255;
-				else if(((int)*blue + tint) < 0) *blue = 0;
-				else *blue += tint;
+		//query i3 for the output list
+		struct i3_output *output_list = get_i3_outputs(i3_sock);
+		struct i3_output *output_temp = NULL;
+		struct i3_output *active_head = NULL;
+		while(output_list != NULL) {
+			if(strcmp(output_list->active, "true") == 0) {
+				printf("found output: %s @ %dx%d\n", output_list->name,
+					   output_list->width, output_list->height);
+				output_temp = active_head;
+				active_head = output_list;
+				output_list = output_list->next;
+				active_head->next = output_temp;
+			}
+			else {
+				output_temp = output_list;
+				output_list = output_list->next;
+				//inactive outputs are not remembered
+				free(output_temp);
 			}
 		}
+		output_list = active_head;
 
-		//indicate we want to recieve mapnotify events
-		XSelectInput(d, w, StructureNotifyMask);
+		//we now iterate over each output, creating and preparing a window
+		//and environment for each. the result of this process is a linked
+		//list of instances pointed to by `instance_list`
+		struct instance *instance_list = NULL;
+		struct instance *instance_tail = NULL;
+		while(output_list != NULL) {
+			//allocate this instance
+			struct instance *ins = malloc(sizeof *ins);
+			ins->next = instance_list;
+			ins->output = output_list;
+			instance_list = ins;
 
-		//map the window
-		XMapWindow(d, w);
+			//create the window
+			ins->w = XCreateSimpleWindow(d, DefaultRootWindow(d),
+										 ins->output->x, ins->output->y,
+										 ins->output->width, conf->depth,
+										 0, 0, 0);
 
-		//create a graphics context
-		GC gc = XCreateGC(d, w, 0, NULL);
+			//set this window type to dock so i3wm knows its a toolbar
+			Atom a_win_type = XInternAtom(d, "_NET_WM_WINDOW_TYPE", False);
+			Atom a_dock = XInternAtom(d, "_NET_WM_WINDOW_TYPE_DOCK", False);
+			XChangeProperty(d, ins->w, a_win_type, XA_ATOM, 32,
+							PropModeReplace, (unsigned char*)&a_dock, 1);
 
-		//wait for the mapnotify event
-		while(True) {
-			XEvent e;
-			XNextEvent(d, &e);
-			if(e.type == MapNotify) break;
+			//set this window position to top/bottom from config
+			//NOTE: 64 bit arch requires these to be longs, despite the '32'
+			//		element size provided in XChangeProperty below, go figure.
+			struct {
+				long left;
+				long right;
+				long top;
+				long bottom;
+				long left_start_y;
+				long left_end_y;
+				long right_start_y;
+				long right_end_y;
+				long top_start_x;
+				long top_end_x;
+				long bottom_start_x;
+				long bottom_end_x;
+			} strut_partial;
+			memset(&strut_partial, 0, sizeof(strut_partial));
+			switch(conf->position) {
+				case TOP:
+					strut_partial.top = conf->depth;
+					strut_partial.top_start_x = ins->output->x;
+					strut_partial.top_end_x = ins->output->x +
+						ins->output->width;
+					break;
+				case BOTTOM:
+					strut_partial.bottom = conf->depth;
+					strut_partial.bottom_start_x = ins->output->x;
+					strut_partial.bottom_end_x = ins->output->x +
+						ins->output->width;
+					break;
+			}
+			Atom a_win_strut = XInternAtom(d, "_NET_WM_STRUT_PARTIAL", False);
+			Atom a_win_cardinal = XInternAtom(d, "CARDINAL", False);
+			XChangeProperty(d, ins->w, a_win_strut, a_win_cardinal, 32,
+							PropModeReplace, (unsigned char*)&strut_partial,
+							12);
+
+			//grab the section of background image for this instance
+			if(bgp != 0) {
+				if(conf->position == TOP) 
+					ins->bg = XGetImage(d, bgp, ins->output->x, ins->output->y,
+										ins->output->width, conf->depth,
+										XAllPlanes(), ZPixmap);
+				else
+					ins->bg = XGetImage(d, bgp, ins->output->x,
+										ins->output->y +
+											ins->output->height - conf->depth,
+										ins->output->width, conf->depth,
+										XAllPlanes(), ZPixmap);
+
+				//and apply the tint
+				for(i = 0; i < ins->output->width * conf->depth; i++) {
+					unsigned int *c = ((unsigned int *)((*ins->bg).data)) + i;
+
+					int tint = conf->tint;
+					//if(i < width) tint *= 2; //top line
+
+					unsigned char *red = ((char *)c) + 2;
+					unsigned char *green = ((char *)c) + 1;
+					unsigned char *blue = ((char *)c) + 0;
+
+					if(((int)*red + tint) > 255) *red = 255;
+					else if(((int)*red + tint) < 0) *red = 0;
+					else *red += tint;
+
+					if(((int)*green + tint) > 255) *green = 255;
+					else if(((int)*green + tint) < 0) *green = 0;
+					else *green += tint;
+
+					if(((int)*blue + tint) > 255) *blue = 255;
+					else if(((int)*blue + tint) < 0) *blue = 0;
+					else *blue += tint;
+				}
+			}
+			else ins->bg = NULL;
+
+			//indicate we want to recieve mapnotify events
+			XSelectInput(d, ins->w, StructureNotifyMask);
+
+			//map the window
+			XMapWindow(d, ins->w);
+
+			//create a graphics context
+			ins->gc = XCreateGC(d, ins->w, 0, NULL);
+
+			//wait for the mapnotify event
+			while(1) {
+				XEvent e;
+				XNextEvent(d, &e);
+				if(e.type == MapNotify) break;
+			}
+
+			//just to avoid calling it so regularly
+			Visual *v = DefaultVisual(d, 0);
+
+			//back buffer
+			ins->bb = XCreatePixmap(d, ins->w, ins->output->width,
+									conf->depth, 24);
+
+			//create the xft context
+			ins->xft = XftDrawCreate(d, ins->bb, v, DefaultColormap(d, 0));
+
+			//continue iterating over active outputs
+			output_list = output_list->next; 
 		}
 
-	// ========= prepare our rendering resources =========
-
-		//just to avoid calling it so regularly
-		Visual *v = DefaultVisual(d, 0);
-
-		//back buffer
-		Pixmap bb = XCreatePixmap(d, w, width, conf->depth, 24);
-
-		//create the xft context
-		XftDraw *xft = XftDrawCreate(d, bb, v, DefaultColormap(d,0));
 		XftFont *time_font = XftFontOpen(d, 0,
 										 XFT_FAMILY, XftTypeString, "sans",
 										 XFT_STYLE, XftTypeString, "bold",
@@ -213,9 +248,9 @@ int main(int argc, char **argv) {
 										 NULL);
 
 		uint32_t textheight = 0;
-		XGlyphInfo gi;
-		XftTextExtents8(d, main_font, "E", 1, &gi);
-		textheight = conf->depth - (conf->depth - gi.height) / 2;
+			XGlyphInfo gi;
+			XftTextExtents8(d, main_font, "E", 1, &gi);
+			textheight = conf->depth - (conf->depth - gi.height) / 2;
 
 	// ========= start the main loop =========
 
@@ -252,105 +287,124 @@ int main(int argc, char **argv) {
 
 				//query i3 for workspace information
 				struct i3_workspace *workspaces_list = get_i3_workspaces(i3_sock);
+				struct i3_workspace *ws_head;
 
-			// ========= refresh the canvas for this iteration =========
+			// ========= iterate over each instance, drawing it =========
 
-				//draw the tinted background
-				if(bg != NULL)
-					XPutImage(d, bb, gc, bg, 0, 0, 0, 0,
-							  width, conf->depth);
-				else
-					XftDrawRect(xft, conf->tintcol, 0, 0,
-								width, conf->depth);
+				struct instance *ins = instance_list;
+				while(ins != NULL) {
 
-			// ========= left side =========
+					// ========= draw the tinted background =========
 
-				uint32_t tlpadding = conf->lpadding;
+						if(ins->bg != NULL)
+							XPutImage(d, ins->bb, ins->gc, ins->bg, 0, 0, 0, 0,
+									  ins->output->width, conf->depth);
+						else
+							XftDrawRect(ins->xft, conf->tintcol, 0, 0,
+										ins->output->width, conf->depth);
 
-				//workspaces
-				while(workspaces_list != NULL) {
-					XftColor *c;
-					if(strcmp(workspaces_list->visible, "true") == 0)
-						c = conf->viswscol;
-					else c = conf->inviswscol;
-					XftDrawString8(xft, c, main_font, tlpadding, textheight,
-								   (XftChar8 *)workspaces_list->name,
-								   strlen(workspaces_list->name));
-					tlpadding += 10;
-					tlpadding += render_divider(xft, tlpadding, LEFT);
-					workspaces_list = workspaces_list->next;
-				}
+					// ========= left side =========
 
-			// ========= right side =========
+						uint32_t tlpadding = conf->lpadding;
 
-				uint32_t trpadding = conf->rpadding;
+						//workspaces
+						ws_head = workspaces_list;
+						while(ws_head != NULL) {
+							//is this workspace on my output?
+							if(strcmp(ws_head->output,
+									  ins->output->name) == 0) {
+								XftColor *c;
+								if(strcmp(ws_head->visible, "true") == 0)
+									c = conf->viswscol;
+								else
+									c = conf->inviswscol;
+								XftDrawString8(ins->xft, c, main_font,
+											   tlpadding, textheight,
+											   (XftChar8 *)ws_head->name,
+											   strlen(ws_head->name));
+								tlpadding += 10;
+								tlpadding += render_divider(ins->xft,
+															tlpadding, LEFT);
+							}
+							ws_head = ws_head->next;
+						}
 
-				//time
-				time_t rawnow = time(NULL);
-				struct tm *now = localtime(&rawnow);
-				char time_string[128];
-				strftime(time_string, 128, conf->timefmt, now);
-				XftTextExtents8(d, time_font, time_string,
-								strlen(time_string), &gi);
-				XftDrawString8(xft, conf->timecol, time_font,
-							   width - (gi.width + trpadding), textheight,
-							   (XftChar8 *)time_string, strlen(time_string));
-				trpadding += gi.width - 1;
+					// ========= right side =========
 
-				//divider
-				trpadding += render_divider(xft, width - trpadding, RIGHT);
+						uint32_t trpadding = conf->rpadding;
 
-				//date
-				char date_string[256];
-				strftime(date_string, 256, conf->datefmt, now);
-				XftTextExtents8(d, main_font, date_string,
-								strlen(date_string), &gi);
-				XftDrawString8(xft, conf->maincol, main_font,
-							   width - (gi.width + trpadding), textheight, 
-							   (XftChar8 *)date_string, strlen(date_string));
-				trpadding += gi.width;
+						//time
+						time_t rawnow = time(NULL);
+						struct tm *now = localtime(&rawnow);
+						char time_string[128];
+						strftime(time_string, 128, conf->timefmt, now);
+						XftTextExtents8(d, time_font, time_string,
+										strlen(time_string), &gi);
+						XftDrawString8(ins->xft, conf->timecol, time_font,
+									   ins->output->width - (gi.width + trpadding), textheight,
+									   (XftChar8 *)time_string, strlen(time_string));
+						trpadding += gi.width - 1;
 
-				//divider
-				trpadding += render_divider(xft, width - trpadding, RIGHT);
+						//divider
+						trpadding += render_divider(ins->xft, ins->output->width - trpadding, RIGHT);
 
-				//ifone
-				if(ifone != NULL) {
-					char ifone_string[256];
-					ifone_string[0] = '\0';
-
-					//if this is an ipv4 or ipv6 address
-					if((ifone->ifa_addr->sa_family == AF_INET) ||
-					   (ifone->ifa_addr->sa_family == AF_INET6)) {
-						struct sockaddr_in *addr =
-							(struct sockaddr_in *)ifone->ifa_addr;
-						char readable_addr[256];
-						inet_ntop(addr->sin_family, &(addr->sin_addr),
-								  readable_addr, 256);
-					
-						sprintf(ifone_string, "%s: %s", conf->ifone,
-								readable_addr);
-					}
-					else sprintf(ifone_string, "%s: down", conf->ifone);
-
-					if(strlen(ifone_string) > 0) {
-						XftTextExtents8(d, main_font, ifone_string,
-										strlen(ifone_string), &gi);
-						XftDrawString8(xft, conf->maincol, main_font,
-									   width - (gi.width + trpadding), textheight, 
-									   (XftChar8 *)ifone_string,
-									   strlen(ifone_string));
+						//date
+						char date_string[256];
+						strftime(date_string, 256, conf->datefmt, now);
+						XftTextExtents8(d, main_font, date_string,
+										strlen(date_string), &gi);
+						XftDrawString8(ins->xft, conf->maincol, main_font,
+									   ins->output->width - (gi.width + trpadding), textheight, 
+									   (XftChar8 *)date_string, strlen(date_string));
 						trpadding += gi.width;
-					}
+
+						//divider
+						trpadding += render_divider(ins->xft, ins->output->width - trpadding, RIGHT);
+
+						//ifone
+						if(ifone != NULL) {
+							char ifone_string[256];
+							ifone_string[0] = '\0';
+
+							//if this is an ipv4 or ipv6 address
+							if((ifone->ifa_addr->sa_family == AF_INET) ||
+							   (ifone->ifa_addr->sa_family == AF_INET6)) {
+								struct sockaddr_in *addr =
+									(struct sockaddr_in *)ifone->ifa_addr;
+								char readable_addr[256];
+								inet_ntop(addr->sin_family, &(addr->sin_addr),
+										  readable_addr, 256);
+							
+								sprintf(ifone_string, "%s: %s", conf->ifone,
+										readable_addr);
+							}
+							else sprintf(ifone_string, "%s: down", conf->ifone);
+
+							if(strlen(ifone_string) > 0) {
+								XftTextExtents8(d, main_font, ifone_string,
+												strlen(ifone_string), &gi);
+								XftDrawString8(ins->xft, conf->maincol, main_font,
+											   ins->output->width - (gi.width + trpadding), textheight, 
+											   (XftChar8 *)ifone_string,
+											   strlen(ifone_string));
+								trpadding += gi.width;
+							}
+						}
+
+					// ========= finish this frame =========
+
+						//draw the back buffer and send to the screen
+						XCopyArea(d, ins->bb, ins->w, ins->gc, 0, 0,
+							ins->output->width, conf->depth, 0, 0);
+						XFlush(d);
+
+						//next instance
+						ins = ins->next;
 				}
-
-			// ========= finish this frame =========
-
-				//draw the back buffer and send to the screen
-				XCopyArea(d, bb, w, gc, 0, 0, width, conf->depth, 0, 0);
-				XFlush(d);
 
 				//control fps
 				usleep(500000);
+
 		}
 
 }

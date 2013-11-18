@@ -112,8 +112,7 @@ struct i3_output *get_i3_outputs(int i3_sock) {
 				if(strcmp(label, "name") == 0) {
 					//we are entering a new output block
 					//we create a new struct pointing to the current head
-					struct i3_output *o =
-						(struct i3_output *)malloc(sizeof(struct i3_output));
+					struct i3_output *o = malloc(sizeof *o);
 					o->next = head;
 					head = o;
 				}
@@ -171,9 +170,7 @@ struct i3_workspace *get_i3_workspaces(int i3_sock) {
 				if(strcmp(label, "name") == 0) {
 					//we are entering a new workspace block
 					//we create a new struct pointing to the current head
-					struct i3_workspace *o =
-						(struct i3_workspace *)malloc(
-							sizeof(struct i3_workspace));
+					struct i3_workspace *o = malloc(sizeof *o);
 					if(tail != NULL) tail->next = o;
 					else head = o;
 					o->next = NULL;
