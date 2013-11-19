@@ -207,8 +207,8 @@ int main(int argc, char **argv) {
 			}
 			else ins->bg = NULL;
 
-			//indicate we want to recieve mapnotify events
-			XSelectInput(d, ins->w, StructureNotifyMask);
+			//indicate we want to recieve mapnotify and mouse events
+			XSelectInput(d, ins->w, StructureNotifyMask | ButtonPressMask);
 
 			//map the window
 			XMapWindow(d, ins->w);
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
 			//create a graphics context
 			ins->gc = XCreateGC(d, ins->w, 0, NULL);
 
-			//wait for the mapnotify event
+			//wait for the mapnotify event before proceeding
 			while(1) {
 				XEvent e;
 				XNextEvent(d, &e);
@@ -288,6 +288,16 @@ int main(int argc, char **argv) {
 				//query i3 for workspace information
 				struct i3_workspace *workspaces_list = get_i3_workspaces(i3_sock);
 				struct i3_workspace *ws_head;
+
+				//check the event buffer for incoming events
+				while(XPending(d)) {
+					XEvent e;
+					XNextEvent(d, &e);
+					if(e.type == ButtonPress) {
+						XButtonEvent *be = (XButtonEvent *)&e;
+						printf("mouse click: %4d,%4d\n", be->x_root, be->y_root);
+					}
+				}
 
 			// ========= iterate over each instance, drawing it =========
 
