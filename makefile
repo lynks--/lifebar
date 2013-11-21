@@ -1,4 +1,4 @@
-CFLAGS=-lX11 -lXft -I/usr/include/freetype2
+CFLAGS=-lX11 -lXft -I/usr/include/freetype2 -g
 CC=/usr/bin/gcc
 
 all:
