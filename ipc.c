@@ -153,6 +153,9 @@ struct i3_workspace *get_i3_workspaces(int i3_sock) {
 	char *workspace_json;
 	i3_ipc_send(&workspace_json, i3_sock, GET_WORKSPACES, "");
 
+	//protection from broken ipc code
+	if(*workspace_json != '[') return NULL;
+
 	char key[64];
 	char label[64];
 	char *labelptr = label;
@@ -191,6 +194,7 @@ struct i3_workspace *get_i3_workspaces(int i3_sock) {
 		else if((c == ',' || c == '}') && inside == 2) {
 			inside = 0;
 			*labelptr = '\0';
+			//TAIL = NULL HERE CAUSING SEGFAULT :(
 			handle_workspace_value_label(tail, key, label);
 			key[0] = '\0';
 			labelptr = label;

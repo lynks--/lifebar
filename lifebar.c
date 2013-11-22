@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 		conf->divwidth = 1;
 		conf->divstyle = LINE;
 		strcpy(conf->ifone, "eth0");
-		conf->tintcol = prepare_xft_colour(d, 250, 250, 255, 255); //TODO use this
+		conf->tintcol = prepare_xft_colour(d, 250, 250, 255, 255); //TODO use
 		conf->maincol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->timecol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->divcol = prepare_xft_colour(d, 50, 50, 70, 255);
@@ -267,13 +267,14 @@ int main(int argc, char **argv) {
 					while(1) {
 						if((strcmp(ifap->ifa_name, conf->ifone) == 0) &&
 						   ((ifap->ifa_addr->sa_family == AF_INET) ||
-							(ifap->ifa_addr == NULL))) { //this is not working for "down" interface
+							(ifap->ifa_addr == NULL))) { //TODO fix for 'down'
 							ifone = ifap;
 							break;
 						}
 						else {
 							if(ifap->ifa_next == NULL) {
-								fprintf(stderr, "failed to find interface \"%s\"",
+								fprintf(stderr,
+										"failed to find interface \"%s\"",
 										conf->ifone);
 								break;
 							}
@@ -286,16 +287,22 @@ int main(int argc, char **argv) {
 				}
 
 				//query i3 for workspace information
-				struct i3_workspace *workspaces_list = get_i3_workspaces(i3_sock);
+				struct i3_workspace *workspaces_list =
+					get_i3_workspaces(i3_sock);
 				struct i3_workspace *ws_head;
 
 				//check the event buffer for incoming events
+				int mouse_clicked = 0;
+				int mouse_x = 0;
+				int mouse_y = 0;
 				while(XPending(d)) {
 					XEvent e;
 					XNextEvent(d, &e);
 					if(e.type == ButtonPress) {
 						XButtonEvent *be = (XButtonEvent *)&e;
-						printf("mouse click: %4d,%4d\n", be->x_root, be->y_root);
+						mouse_clicked = 1;
+						mouse_x = be->x_root;
+						mouse_y = be->y_root;
 					}
 				}
 
@@ -303,6 +310,14 @@ int main(int argc, char **argv) {
 
 				struct instance *ins = instance_list;
 				while(ins != NULL) {
+
+					// ========= handle instance-specific events =========
+
+						if(mouse_clicked) {
+							//check if this instance has been clicked on
+							if(mouse_x > ins->output->x &&
+							   mouse_x < (ins->output->x + ins->output->width) &&
+						}
 
 					// ========= draw the tinted background =========
 
@@ -413,7 +428,7 @@ int main(int argc, char **argv) {
 				}
 
 				//control fps
-				usleep(500000);
+				usleep(50000);
 
 		}
 
