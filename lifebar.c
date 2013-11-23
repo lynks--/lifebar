@@ -386,12 +386,15 @@ int main(int argc, char **argv) {
 						XftTextExtents8(d, time_font, time_string,
 										strlen(time_string), &gi);
 						XftDrawString8(ins->xft, conf->timecol, time_font,
-									   ins->output->width - (gi.width + trpadding), textheight,
-									   (XftChar8 *)time_string, strlen(time_string));
+									   ins->output->width -
+									   (gi.width + trpadding), textheight,
+									   (XftChar8 *)time_string,
+									   strlen(time_string));
 						trpadding += gi.width - 1;
 
 						//divider
-						trpadding += render_divider(ins->xft, ins->output->width - trpadding, RIGHT);
+						trpadding += render_divider(ins->xft,
+										ins->output->width - trpadding, RIGHT);
 
 						//date
 						char date_string[256];
@@ -399,8 +402,10 @@ int main(int argc, char **argv) {
 						XftTextExtents8(d, main_font, date_string,
 										strlen(date_string), &gi);
 						XftDrawString8(ins->xft, conf->maincol, main_font,
-									   ins->output->width - (gi.width + trpadding), textheight, 
-									   (XftChar8 *)date_string, strlen(date_string));
+									   ins->output->width -
+									   (gi.width + trpadding), textheight, 
+									   (XftChar8 *)date_string,
+									   strlen(date_string));
 						trpadding += gi.width;
 
 						//divider
@@ -421,16 +426,20 @@ int main(int argc, char **argv) {
 								inet_ntop(addr->sin_family, &(addr->sin_addr),
 										  readable_addr, 256);
 							
-								sprintf(ifone_string, "%s: %s", conf->ifone,
+								sprintf(ifone_string, "%s  %s", conf->ifone,
 										readable_addr);
 							}
-							else sprintf(ifone_string, "%s: down", conf->ifone);
+							else sprintf(ifone_string, "%s  down",
+										conf->ifone);
 
 							if(strlen(ifone_string) > 0) {
 								XftTextExtents8(d, main_font, ifone_string,
 												strlen(ifone_string), &gi);
-								XftDrawString8(ins->xft, conf->maincol, main_font,
-											   ins->output->width - (gi.width + trpadding), textheight, 
+								XftDrawString8(ins->xft, conf->maincol,
+											   main_font,
+											   ins->output->width -
+											   (gi.width + trpadding),
+											   textheight, 
 											   (XftChar8 *)ifone_string,
 											   strlen(ifone_string));
 								trpadding += gi.width;
@@ -444,12 +453,13 @@ int main(int argc, char **argv) {
 						//fsone
 						if(fsone_cap) {
 							char str[64];
-							sprintf(str, "%s : %.1fGB", conf->fsone,
+							sprintf(str, "%s  %.1fGiB", conf->fsone,
 									(double)fsone_free / (1024 * 1024 * 1024));
 							XftTextExtents8(d, main_font, str,
 											strlen(str), &gi);
 							XftDrawString8(ins->xft, conf->maincol, main_font,
-										   ins->output->width - (gi.width + trpadding), textheight, 
+										   ins->output->width -
+										   (gi.width + trpadding), textheight, 
 										   (XftChar8 *)str,
 										   strlen(str));
 							trpadding += gi.width;
@@ -462,12 +472,13 @@ int main(int argc, char **argv) {
 						//fstwo
 						if(fstwo_cap) {
 							char str[64];
-							sprintf(str, "%s : %.1fGB", conf->fstwo,
+							sprintf(str, "%s  %.1fGiB", conf->fstwo,
 									(double)fstwo_free / (1024 * 1024 * 1024));
 							XftTextExtents8(d, main_font, str,
 											strlen(str), &gi);
 							XftDrawString8(ins->xft, conf->maincol, main_font,
-										   ins->output->width - (gi.width + trpadding), textheight, 
+										   ins->output->width -
+										   (gi.width + trpadding), textheight, 
 										   (XftChar8 *)str,
 										   strlen(str));
 							trpadding += gi.width;
