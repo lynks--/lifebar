@@ -28,6 +28,9 @@ int main(int argc, char **argv) {
 		conf->divwidth = 1;
 		conf->divstyle = LINE;
 		strcpy(conf->ifone, "eth0");
+		strcpy(conf->iftwo, "");
+		strcpy(conf->fsone, "/");
+		strcpy(conf->fstwo, "/home");
 		conf->tintcol = prepare_xft_colour(d, 250, 250, 255, 255); //TODO use
 		conf->maincol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->timecol = prepare_xft_colour(d, 20, 20, 20, 255);
@@ -306,6 +309,21 @@ int main(int argc, char **argv) {
 					}
 				}
 
+				//lookup hdd capacity information
+				struct statvfs fs;
+				unsigned long long fsone_cap = 0;
+				unsigned long long fsone_free = 0;
+				unsigned long long fstwo_cap = 0;
+				unsigned long long fstwo_free = 0;
+				if(statvfs(conf->fsone, &fs) != -1) {
+					fsone_cap = (unsigned long long)fs.f_bsize * fs.f_bfree;
+					fsone_free = (unsigned long long)fs.f_bsize * fs.f_bfree;
+				}
+				if(statvfs(conf->fstwo, &fs) != -1) {
+					fstwo_cap = (unsigned long long)fs.f_bsize * fs.f_bfree;
+					fstwo_free = (unsigned long long)fs.f_bsize * fs.f_bfree;
+				}
+
 			// ========= iterate over each instance, drawing it =========
 
 				struct instance *ins = instance_list;
@@ -315,8 +333,10 @@ int main(int argc, char **argv) {
 
 						if(mouse_clicked) {
 							//check if this instance has been clicked on
+							/*
 							if(mouse_x > ins->output->x &&
-							   mouse_x < (ins->output->x + ins->output->width) &&
+							   mouse_x < (ins->output->x + ins->output->width)
+							*/
 						}
 
 					// ========= draw the tinted background =========
@@ -384,7 +404,8 @@ int main(int argc, char **argv) {
 						trpadding += gi.width;
 
 						//divider
-						trpadding += render_divider(ins->xft, ins->output->width - trpadding, RIGHT);
+						trpadding += render_divider(ins->xft,
+										ins->output->width - trpadding, RIGHT);
 
 						//ifone
 						if(ifone != NULL) {
@@ -413,7 +434,47 @@ int main(int argc, char **argv) {
 											   (XftChar8 *)ifone_string,
 											   strlen(ifone_string));
 								trpadding += gi.width;
+
+								//divider
+								trpadding += render_divider(ins->xft,
+										ins->output->width - trpadding, RIGHT);
 							}
+						}
+
+						//fsone
+						if(fsone_cap) {
+							char str[64];
+							sprintf(str, "%s : %.1fGB", conf->fsone,
+									(double)fsone_free / (1024 * 1024 * 1024));
+							XftTextExtents8(d, main_font, str,
+											strlen(str), &gi);
+							XftDrawString8(ins->xft, conf->maincol, main_font,
+										   ins->output->width - (gi.width + trpadding), textheight, 
+										   (XftChar8 *)str,
+										   strlen(str));
+							trpadding += gi.width;
+
+							//divider
+							trpadding += render_divider(ins->xft,
+										ins->output->width - trpadding, RIGHT);
+						}
+
+						//fstwo
+						if(fstwo_cap) {
+							char str[64];
+							sprintf(str, "%s : %.1fGB", conf->fstwo,
+									(double)fstwo_free / (1024 * 1024 * 1024));
+							XftTextExtents8(d, main_font, str,
+											strlen(str), &gi);
+							XftDrawString8(ins->xft, conf->maincol, main_font,
+										   ins->output->width - (gi.width + trpadding), textheight, 
+										   (XftChar8 *)str,
+										   strlen(str));
+							trpadding += gi.width;
+
+							//divider
+							trpadding += render_divider(ins->xft,
+										ins->output->width - trpadding, RIGHT);
 						}
 
 					// ========= finish this frame =========

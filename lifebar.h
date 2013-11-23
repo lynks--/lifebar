@@ -4,6 +4,7 @@
 #include <X11/extensions/Xrandr.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/statvfs.h>
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <time.h>
@@ -77,6 +78,9 @@ struct config {
 	uint32_t divwidth;		//divider line width
 	uint32_t divstyle;		//divider line style (LINE or GROOVE)
 	char ifone[32];			//interface name, eg eth0
+	char iftwo[32];			//interface name, eg eth0
+	char fsone[32];			//fs location, eg /home
+	char fstwo[32];			//fs location, eg /home
 	XftColor *tintcol;		//transparency tint colour
 	XftColor *maincol;		//main text colour
 	XftColor *timecol;		//time text colour
