@@ -10,13 +10,15 @@ int main(int argc, char **argv) {
 		//open the display
 		Display *d = XOpenDisplay(NULL);
 		if(!d) {
-			fprintf(stderr, "failed to get x display :(\n");
+			fprintf(stderr, "%sfailed to get x display :(\n", BAD_MSG);
 			return 1;
 		}
 
 	// ========= load the configuration =========
 
 		conf = (struct config*)malloc(sizeof(struct config));
+
+		//first we set the defaults to avoid unset values
 		conf->position = BOTTOM;
 		conf->depth = 20;
 		conf->tint = 60;
@@ -29,21 +31,58 @@ int main(int argc, char **argv) {
 		conf->divstyle = LINE;
 		strcpy(conf->ifone, "eth0");
 		strcpy(conf->iftwo, "");
-		strcpy(conf->fsone, "/");
-		strcpy(conf->fstwo, "/home");
-		conf->tintcol = prepare_xft_colour(d, 250, 250, 255, 255); //TODO use
+		strcpy(conf->fsone, "/home");
+		strcpy(conf->fstwo, "");
+		conf->tintcol = prepare_xft_colour(d, 250, 250, 255, 255);
 		conf->maincol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->timecol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->divcol = prepare_xft_colour(d, 50, 50, 70, 255);
 		conf->viswscol = prepare_xft_colour(d, 0, 0, 0, 255);
 		conf->inviswscol = prepare_xft_colour(d, 60, 60, 60, 255);
 
+		//now overwrite the defaults with any configured values
+		char *confpath = malloc(1024);
+		sprintf(confpath, "%s/.lifebarrc", getenv("HOME"));
+		FILE *cf = fopen(confpath, "r");
+		if(cf != NULL) {
+			printf("%susing config file '~/.lifebarrc'\n", GOOD_MSG);
+			char line[1024];
+			char key[128];
+			char value[1024];
+			unsigned int vstart = 0;
+			while(fgets(line, 1024, cf) != NULL) {
+				if(line[0] != '#') {
+					int success = sscanf(line, " %s %n\" %[^\"]\"\n",
+										 key, &vstart, value);
+					if(success == 1) {
+						//key was read ok, value was not quoted so we reread
+						success = sscanf(line + vstart, "%s \n", value);
+					}
+
+					if(strcmp(key, "position") == 0) {
+						//handle
+					}
+					else if(strcmp(key, "depth") == 0) {
+						//etc
+					}
+
+					printf("%s = %s\n", key, value);
+				}
+			}
+		}
+		else {
+			//in the absence of a config file we use defaults
+			fprintf(stderr,
+					"%sno config file '~/.lifebarrc' found, using default\n",
+				   BAD_MSG);
+		}
+
 	// ========= open the connection to i3wm via unix domain sockets =========
 
 		//learn the i3wm ipc socket path
 		char *i3_sockpath;
 		get_i3_sockpath(&i3_sockpath);
-		printf("i3 ipc socket: %s\n", i3_sockpath);
+		printf("%si3 ipc socket: %s\n", GOOD_MSG, i3_sockpath);
 
 		//use the socket path to create a unix sockaddr struct
 		struct sockaddr_un i3_sockaddr;
@@ -78,7 +117,7 @@ int main(int argc, char **argv) {
 						   XA_PIXMAP, &actual_type_r, &actual_format_r,
 						   &nitems_r, &bytes_after_r, &prop_r);
 		if(actual_format_r == 0 || prop_r == NULL) {
-			fprintf(stderr, "Failed to read root background for ");
+			fprintf(stderr, "%sFailed to read root background for ", BAD_MSG);
 			fprintf(stderr, "transparency. Ensure your root window has the ");
 			fprintf(stderr, "_XROOTPMAP_ID property.\n");
 		}
@@ -93,8 +132,9 @@ int main(int argc, char **argv) {
 		struct i3_output *active_head = NULL;
 		while(output_list != NULL) {
 			if(strcmp(output_list->active, "true") == 0) {
-				printf("found output: %s @ %dx%d\n", output_list->name,
-					   output_list->width, output_list->height);
+				printf("%sfound output: %s @ %dx%d\n", GOOD_MSG,
+					   output_list->name, output_list->width,
+					   output_list->height);
 				output_temp = active_head;
 				active_head = output_list;
 				output_list = output_list->next;
@@ -258,6 +298,7 @@ int main(int argc, char **argv) {
 	// ========= start the main loop =========
 
 		int run = 1;
+		int ifone_warned = 0; //warn once
 		while(run) {
 
 			// ========= gather information for this iteration =========
@@ -266,19 +307,20 @@ int main(int argc, char **argv) {
 				struct ifaddrs *ifap = NULL;
 				struct ifaddrs *ifone = NULL;
 				if(getifaddrs(&ifap)) perror("getifaddrs");
-				else {
+				else if(!ifone_warned) {
 					while(1) {
 						if((strcmp(ifap->ifa_name, conf->ifone) == 0) &&
 						   ((ifap->ifa_addr->sa_family == AF_INET) ||
-							(ifap->ifa_addr == NULL))) { //TODO fix for 'down'
+							(ifap->ifa_addr == NULL))) { //TODO not matching down
 							ifone = ifap;
 							break;
 						}
 						else {
 							if(ifap->ifa_next == NULL) {
 								fprintf(stderr,
-										"failed to find interface \"%s\"",
-										conf->ifone);
+										"%sfailed to find interface '%s'\n",
+										BAD_MSG, conf->ifone);
+								ifone_warned = 1;
 								break;
 							}
 							else {

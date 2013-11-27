@@ -56,6 +56,10 @@
 #define LINE 0
 #define GROOVE 1
 
+//output message types
+#define BAD_MSG "[ \x1b[31m:(\x1b[0m ] "
+#define GOOD_MSG "[ \x1b[92m:)\x1b[0m ] "
+
 struct i3_output {
 	char name[16];
 	char active[16];
