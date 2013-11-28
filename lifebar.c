@@ -458,12 +458,12 @@ int main(int argc, char **argv) {
 				unsigned long long fstwo_cap = 0;
 				unsigned long long fstwo_free = 0;
 				if(statvfs(conf->fsone, &fs) != -1) {
-					fsone_cap = (unsigned long long)fs.f_bsize * fs.f_bfree;
-					fsone_free = (unsigned long long)fs.f_bsize * fs.f_bfree;
+					fsone_cap = (unsigned long long)fs.f_bsize * fs.f_blocks;
+					fsone_free = (unsigned long long)fs.f_bsize * fs.f_bavail;
 				}
 				if(statvfs(conf->fstwo, &fs) != -1) {
-					fstwo_cap = (unsigned long long)fs.f_bsize * fs.f_bfree;
-					fstwo_free = (unsigned long long)fs.f_bsize * fs.f_bfree;
+					fstwo_cap = (unsigned long long)fs.f_bsize * fs.f_blocks;
+					fstwo_free = (unsigned long long)fs.f_bsize * fs.f_bavail;
 				}
 
 			// ========= iterate over each instance, drawing it =========
