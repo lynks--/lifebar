@@ -1,0 +1,52 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                             #
+#          Example lifebar config file. Edit and save to ~/.lifebarrc         #
+#                                                                             #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# position of the bar, valid options are 'top' and 'bottom'
+position	bottom
+
+# thickness of the bar in pixels
+depth		20
+
+# network interface names used for reporting ip address information
+ifone		eth0
+#iftwo		wlan0
+
+# filesystem paths used for reporting remaining storage capacity
+fsone		/home
+#fstwo		/
+
+# time and date formats, see `man strftime`
+timefmt		"%H:%M"
+datefmt		"%A %e %B %Y"
+
+# screen edge and divider padding
+lpadding	10
+rpadding	10
+divpadding	10
+
+# divider style, valid options are 'line' and 'groove'
+divstyle	groove
+
+# colour format is RED,GREEN,BLUE,ALPHA with values of 0-255
+# background colour, for (pseudo)transparency use an ALPHA value less than 255
+tintcol		"255,255,255,100"
+# main key and value text colours
+keycol		" 20, 20, 20,255"
+valcol		" 20, 20, 20,200"
+# time and date text colours
+timecol		" 10, 10, 10,255"
+datecol		" 10, 10, 10,255"
+alarmcol	"200, 10, 10,255"
+# colour of divider lines when divstyle is set to 'line'
+divcol		" 30, 30, 50,255"
+# workspace name text colour when that workspace is visible
+viswscol	" 20, 20, 20,255"
+# workspace name text colour when that workspace is not visible
+inviswscol	" 20, 20, 20,100"
+
+# layout all workspaces / ifone | date | time
+
+# vim: syntax=sh softtabstop=8 tabstop=8:

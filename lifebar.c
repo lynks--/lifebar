@@ -21,7 +21,6 @@ int main(int argc, char **argv) {
 		//first we set the defaults to avoid unset values
 		conf->position = BOTTOM;
 		conf->depth = 20;
-		conf->tint = 60;
 		strcpy(conf->datefmt, "%A %e %B %Y");
 		strcpy(conf->timefmt, "%H:%M");
 		conf->rpadding = 10;
@@ -33,12 +32,12 @@ int main(int argc, char **argv) {
 		strcpy(conf->iftwo, "");
 		strcpy(conf->fsone, "/home");
 		strcpy(conf->fstwo, "");
-		conf->tintcol = prepare_xft_colour(d, 250, 250, 255, 255);
+		conf->tintcol = prepare_xft_colour(d, 255, 255, 255, 100);
 		conf->maincol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->timecol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->divcol = prepare_xft_colour(d, 50, 50, 70, 255);
 		conf->viswscol = prepare_xft_colour(d, 0, 0, 0, 255);
-		conf->inviswscol = prepare_xft_colour(d, 60, 60, 60, 255);
+		conf->inviswscol = prepare_xft_colour(d, 80, 80, 80, 255);
 
 		//now overwrite the defaults with any configured values
 		char *confpath = malloc(1024);
@@ -51,24 +50,115 @@ int main(int argc, char **argv) {
 			char value[1024];
 			unsigned int vstart = 0;
 			while(fgets(line, 1024, cf) != NULL) {
-				if(line[0] != '#') {
+				if(line[0] != '#' && line[0] != '\n') {
 					int success = sscanf(line, " %s %n\" %[^\"]\"\n",
 										 key, &vstart, value);
 					if(success == 1) {
 						//key was read ok, value was not quoted so we reread
 						success = sscanf(line + vstart, "%s \n", value);
+						if(success == 0) {
+							fprintf(stderr,
+									"%serror parsing config line: %s\n",
+									BAD_MSG, line);
+							continue;
+						}
+						else success = 2;
 					}
 
-					if(strcmp(key, "position") == 0) {
-						//handle
+					if(success == 2) {
+						if(strcmp(key, "position") == 0) {
+							if(strcmp(value, "top") == 0)
+								conf->position = TOP;
+							else if(strcmp(value, "bottom") == 0)
+								conf->position = BOTTOM;
+							else
+								fprintf(stderr,
+								  "%sbad value for config key 'position':%s\n",
+								  BAD_MSG, value);
+						}
+						else if(strcmp(key, "depth") == 0) {
+							int x = atoi(value);
+							if(x > 0) conf->depth = x;
+							else fprintf(stderr,
+									"%sbad value for config key 'depth':%s\n",
+									BAD_MSG, value);
+						}
+						else if(strcmp(key, "datefmt") == 0)
+							strcpy(conf->datefmt, value);
+						else if(strcmp(key, "timefmt") == 0)
+							strcpy(conf->timefmt, value);
+						else if(strcmp(key, "rpadding") == 0) {
+							int x = atoi(value);
+							if(x > 0) conf->rpadding = x;
+							else fprintf(stderr,
+								  "%sbad value for config key 'rpadding':%s\n",
+								  BAD_MSG, value);
+						}
+						else if(strcmp(key, "lpadding") == 0) {
+							int x = atoi(value);
+							if(x > 0) conf->lpadding = x;
+							else fprintf(stderr,
+								  "%sbad value for config key 'lpadding':%s\n",
+								  BAD_MSG, value);
+						}
+						else if(strcmp(key, "divpadding") == 0) {
+							int x = atoi(value);
+							if(x > 0) conf->divpadding = x;
+							else fprintf(stderr,
+								"%sbad value for config key 'divpadding':%s\n",
+								BAD_MSG, value);
+						}
+						else if(strcmp(key, "divstyle") == 0) {
+							if(strcmp(value, "line") == 0)
+								conf->divstyle = LINE;
+							else if(strcmp(value, "groove") == 0)
+								conf->divstyle = GROOVE;
+							else
+								fprintf(stderr,
+								  "%sbad value for config key 'divstyle':%s\n",
+								  BAD_MSG, value);
+						}
+						else if(strcmp(key, "ifone") == 0)
+							strcpy(conf->ifone, value);
+						else if(strcmp(key, "iftwo") == 0)
+							strcpy(conf->iftwo, value);
+						else if(strcmp(key, "fsone") == 0)
+							strcpy(conf->fsone, value);
+						else if(strcmp(key, "fstwo") == 0)
+							strcpy(conf->fstwo, value);
+						else if(strcmp(key, "tintcol") == 0) {
+							XftColor *col = parse_config_colour(d, value);
+							if(col != NULL) conf->tintcol = col;
+						}
+						else if(strcmp(key, "maincol") == 0) {
+							XftColor *col = parse_config_colour(d, value);
+							if(col != NULL) conf->maincol = col;
+						}
+						else if(strcmp(key, "timecol") == 0) {
+							XftColor *col = parse_config_colour(d, value);
+							if(col != NULL) conf->timecol = col;
+						}
+						else if(strcmp(key, "divcol") == 0) {
+							XftColor *col = parse_config_colour(d, value);
+							if(col != NULL) conf->divcol = col;
+						}
+						else if(strcmp(key, "viswscol") == 0) {
+							XftColor *col = parse_config_colour(d, value);
+							if(col != NULL) conf->viswscol = col;
+						}
+						else if(strcmp(key, "inviswscol") == 0) {
+							XftColor *col = parse_config_colour(d, value);
+							if(col != NULL) conf->inviswscol = col;
+						}
 					}
-					else if(strcmp(key, "depth") == 0) {
-						//etc
+					else {
+						printf("%d\n", success);
+						fprintf(stderr, "%serror parsing config line: %s\n",
+								BAD_MSG, line);
+						continue;
 					}
-
-					printf("%s = %s\n", key, value);
 				}
-			}
+			} //end config line iteration
 		}
 		else {
 			//in the absence of a config file we use defaults
@@ -226,26 +316,36 @@ int main(int argc, char **argv) {
 
 				//and apply the tint
 				for(i = 0; i < ins->output->width * conf->depth; i++) {
+					//grab the background colour for this pixel
 					unsigned int *c = ((unsigned int *)((*ins->bg).data)) + i;
-
-					int tint = conf->tint;
-					//if(i < width) tint *= 2; //top line
-
 					unsigned char *red = ((char *)c) + 2;
 					unsigned char *green = ((char *)c) + 1;
 					unsigned char *blue = ((char *)c) + 0;
 
-					if(((int)*red + tint) > 255) *red = 255;
-					else if(((int)*red + tint) < 0) *red = 0;
-					else *red += tint;
+					//calculate the difference from background to tint
+					int red_d =
+						((conf->tintcol->color.red / 255) - (int)*red) /
+						((255 * 255) / conf->tintcol->color.alpha);
+					int green_d =
+						((conf->tintcol->color.green / 255) - (int)*green) /
+						((255 * 255) / conf->tintcol->color.alpha);
+					int blue_d =
+						((conf->tintcol->color.blue / 255) - (int)*blue) /
+						((255 * 255) / conf->tintcol->color.alpha);
 
-					if(((int)*green + tint) > 255) *green = 255;
-					else if(((int)*green + tint) < 0) *green = 0;
-					else *green += tint;
+					//if(i < width) //top line
 
-					if(((int)*blue + tint) > 255) *blue = 255;
-					else if(((int)*blue + tint) < 0) *blue = 0;
-					else *blue += tint;
+					if(((int)*red + red_d) > 255) *red = 255;
+					else if(((int)*red + red_d) < 0) *red = 0;
+					else *red += red_d;
+
+					if(((int)*green + green_d) > 255) *green = 255;
+					else if(((int)*green + green_d) < 0) *green = 0;
+					else *green += green_d;
+
+					if(((int)*blue + blue_d) > 255) *blue = 255;
+					else if(((int)*blue + blue_d) < 0) *blue = 0;
+					else *blue += blue_d;
 				}
 			}
 			else ins->bg = NULL;

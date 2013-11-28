@@ -92,7 +92,6 @@ struct instance {
 struct config {
 	uint32_t position;		//TOP or BOTTOM
 	uint32_t depth;			//bar depth, eg 20
-	int32_t tint;			//transparency tint -100 -> 100
 	char datefmt[64];		//date strftime format string
 	char timefmt[64];		//time strftime format string
 	uint32_t rpadding;		//padding on right screen edge
@@ -133,3 +132,5 @@ struct i3_output *get_i3_outputs();
 struct i3_workspace *get_i3_workspaces();
 
 void get_i3_sockpath(char **);
+
+XftColor *parse_config_colour(Display *, char *);
