@@ -38,6 +38,8 @@ int main(int argc, char **argv) {
 		conf->divcol = prepare_xft_colour(d, 50, 50, 70, 255);
 		conf->viswscol = prepare_xft_colour(d, 0, 0, 0, 255);
 		conf->inviswscol = prepare_xft_colour(d, 80, 80, 80, 255);
+		conf->groove_dark = prepare_xft_colour(d, 110, 110, 110, 255);
+		conf->groove_light = prepare_xft_colour(d, 180, 180, 180, 255);
 
 		//now overwrite the defaults with any configured values
 		char *confpath = malloc(1024);
@@ -301,8 +303,8 @@ int main(int argc, char **argv) {
 							PropModeReplace, (unsigned char*)&strut_partial,
 							12);
 
-			//grab the section of background image for this instance
 			if(bgp != 0) {
+				//grab the section of background image for this instance
 				if(conf->position == TOP) 
 					ins->bg = XGetImage(d, bgp, ins->output->x, ins->output->y,
 										ins->output->width, conf->depth,
@@ -332,8 +334,6 @@ int main(int argc, char **argv) {
 					int blue_d =
 						((conf->tintcol->color.blue / 255) - (int)*blue) /
 						((255 * 255) / conf->tintcol->color.alpha);
-
-					//if(i < width) //top line
 
 					if(((int)*red + red_d) > 255) *red = 255;
 					else if(((int)*red + red_d) < 0) *red = 0;
@@ -369,6 +369,11 @@ int main(int argc, char **argv) {
 			//just to avoid calling it so regularly
 			Visual *v = DefaultVisual(d, 0);
 
+			//TODO we should use cairo. we need to keep the background image,
+			//pre-tinted, as well as a backbuffer, both in cairo contexts (same context?)
+			//get rid of the xft context stuff and properly split the
+			//rendering code
+
 			//back buffer
 			ins->bb = XCreatePixmap(d, ins->w, ins->output->width,
 									conf->depth, 24);
@@ -391,14 +396,15 @@ int main(int argc, char **argv) {
 										 NULL);
 
 		uint32_t textheight = 0;
-			XGlyphInfo gi;
-			XftTextExtents8(d, main_font, "E", 1, &gi);
-			textheight = conf->depth - (conf->depth - gi.height) / 2;
+		XGlyphInfo gi;
+		XftTextExtents8(d, main_font, "E", 1, &gi);
+		textheight = conf->depth - (conf->depth - gi.height) / 2;
 
 	// ========= start the main loop =========
 
 		int run = 1;
 		int ifone_warned = 0; //warn once
+		int iftwo_warned = 0;
 		while(run) {
 
 			// ========= gather information for this iteration =========
@@ -503,8 +509,7 @@ int main(int argc, char **argv) {
 								XftColor *c;
 								if(strcmp(ws_head->visible, "true") == 0)
 									c = conf->viswscol;
-								else
-									c = conf->inviswscol;
+								else c = conf->inviswscol;
 								XftDrawString8(ins->xft, c, main_font,
 											   tlpadding, textheight,
 											   (XftChar8 *)ws_head->name,

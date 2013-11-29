@@ -9,6 +9,11 @@ int render_divider(XftDraw *xft, int x, int d) {
 			return (conf->divpadding * 2) + conf->divwidth + 1;
 		}
 		else if(conf->divstyle == GROOVE) {
+			XftDrawRect(xft, conf->groove_dark, x - (conf->divpadding + 1), 0,
+						1, conf->depth);
+			XftDrawRect(xft, conf->groove_light, x - (conf->divpadding + 0), 0,
+						1, conf->depth);
+			return (conf->divpadding * 2) + 2;
 		}
 	}
 	else if(d == LEFT) {
@@ -19,6 +24,11 @@ int render_divider(XftDraw *xft, int x, int d) {
 			return (conf->divpadding * 2) + conf->divwidth + 1;
 		}
 		else if(conf->divstyle == GROOVE) {
+			XftDrawRect(xft, conf->groove_dark, x + conf->divpadding, 0,
+						1, conf->depth);
+			XftDrawRect(xft, conf->groove_light, x + conf->divpadding + 1, 0,
+						1, conf->depth);
+			return (conf->divpadding * 2) + 2;
 		}
 	}
 	return conf->divpadding;

@@ -109,6 +109,8 @@ struct config {
 	XftColor *divcol;		//divider line colour for line divider style
 	XftColor *viswscol;		//text colour for visible workspace
 	XftColor *inviswscol;	//text colour for invisible workspace
+	XftColor *groove_light;	//light side of groove overlay
+	XftColor *groove_dark;	//dark side of groove overlay
 };
 
 extern struct config *conf;
