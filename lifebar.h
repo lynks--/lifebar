@@ -27,6 +27,7 @@
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <cairo.h>
+#include <cairo-xlib.h>
 #include <time.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -100,34 +101,32 @@ struct colour {
 };
 
 struct config {
-	uint32_t position;		//TOP or BOTTOM
-	uint32_t depth;			//bar depth, eg 20
-	char datefmt[64];		//date strftime format string
-	char timefmt[64];		//time strftime format string
-	uint32_t rpadding;		//padding on right screen edge
-	uint32_t lpadding;		//padding on left screen edge
-	uint32_t divpadding;	//padding either side of divider lines
-	uint32_t divwidth;		//divider line width
-	uint32_t divstyle;		//divider line style (LINE or GROOVE)
-	char ifone[32];			//interface name, eg eth0
-	char iftwo[32];			//interface name, eg eth0
-	char fsone[32];			//fs location, eg /home
-	char fstwo[32];			//fs location, eg /home
-	struct colour *tintcol;	//transparency tint colour
-	XftColor *maincol;		//main text colour
-	XftColor *timecol;		//time text colour
-	XftColor *divcol;		//divider line colour for line divider style
-	XftColor *viswscol;		//text colour for visible workspace
-	XftColor *inviswscol;	//text colour for invisible workspace
-	XftColor *groove_light;	//light side of groove overlay
-	XftColor *groove_dark;	//dark side of groove overlay
+	uint32_t position;				//TOP or BOTTOM
+	uint32_t depth;					//bar depth, eg 20
+	char datefmt[64];				//date strftime format string
+	char timefmt[64];				//time strftime format string
+	uint32_t rpadding;				//padding on right screen edge
+	uint32_t lpadding;				//padding on left screen edge
+	uint32_t divpadding;			//padding either side of divider lines
+	uint32_t divwidth;				//divider line width
+	uint32_t divstyle;				//divider line style (LINE or GROOVE)
+	char ifone[32];					//interface name, eg eth0
+	char iftwo[32];					//interface name, eg eth0
+	char fsone[32];					//fs location, eg /home
+	char fstwo[32];					//fs location, eg /home
+	struct colour *tintcol;			//transparency tint colour
+	struct colour *maincol;			//main text colour
+	struct colour *timecol;			//time text colour
+	struct colour *divcol;			//divider line colour for line divider style
+	struct colour *viswscol;		//text colour for visible workspace
+	struct colour *inviswscol;		//text colour for invisible workspace
+	struct colour *groove_light;	//light side of groove overlay
+	struct colour *groove_dark;		//dark side of groove overlay
 };
 
 extern struct config *conf;
 
-int render_divider(XftDraw *, int, int);
-
-XftColor *prepare_xft_colour(Display *, int, int, int, int);
+int render_divider(cairo_t *, int, int);
 
 struct colour *prepare_colour(int, int, int, int);
 

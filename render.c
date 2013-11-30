@@ -1,37 +1,38 @@
 #include "lifebar.h"
 
-int render_divider(XftDraw *xft, int x, int d) {
+int render_divider(cairo_t *cairo, int x, int d) {
 	if(d == RIGHT) {
 		if(conf->divstyle == LINE) {
-			XftDrawRect(xft, conf->divcol,
-						x - (conf->divpadding + conf->divwidth), 3,
-						conf->divwidth, conf->depth - 6);
+			set_cairo_source_colour(cairo, conf->divcol);
+			cairo_rectangle(cairo,
+							x - (conf->divpadding + conf->divwidth), 3,
+							conf->divwidth, conf->depth - 6);
+			cairo_fill(cairo);
 			return (conf->divpadding * 2) + conf->divwidth + 1;
 		}
 		else if(conf->divstyle == GROOVE) {
-			XftDrawRect(xft, conf->groove_dark, x - (conf->divpadding + 1), 0,
-						1, conf->depth);
-			XftDrawRect(xft, conf->groove_light, x - (conf->divpadding + 0), 0,
-						1, conf->depth);
+			set_cairo_source_colour(cairo, conf->groove_light);
+			cairo_rectangle(cairo, x - conf->divpadding, 0, 2, conf->depth);
+			cairo_fill(cairo);
+			set_cairo_source_colour(cairo, conf->groove_dark);
+			cairo_rectangle(cairo, x - (conf->divpadding + 1), 0, 2, conf->depth);
+			cairo_fill(cairo);
 			return (conf->divpadding * 2) + 2;
 		}
 	}
 	else if(d == LEFT) {
 		if(conf->divstyle == LINE) {
-			XftDrawRect(xft, conf->divcol,
-						x + conf->divpadding, 3,
-						conf->divwidth, conf->depth - 6);
+			set_cairo_source_colour(cairo, conf->divcol);
+			cairo_rectangle(cairo,
+							x + conf->divpadding, 3,
+							conf->divwidth, conf->depth - 6);
+			cairo_fill(cairo);
 			return (conf->divpadding * 2) + conf->divwidth + 1;
 		}
 		else if(conf->divstyle == GROOVE) {
-			XftDrawRect(xft, conf->groove_dark, x + conf->divpadding, 0,
-						1, conf->depth);
-			XftDrawRect(xft, conf->groove_light, x + conf->divpadding + 1, 0,
-						1, conf->depth);
-			return (conf->divpadding * 2) + 2;
 		}
 	}
-	return conf->divpadding;
+	return 10;
 }
 
 struct colour *prepare_colour(int r, int g, int b, int a) {

@@ -27,21 +27,19 @@ int main(int argc, char **argv) {
 		conf->lpadding = 10;
 		conf->divpadding = 10;
 		conf->divwidth = 1;
-		conf->divstyle = LINE;
+		conf->divstyle = GROOVE;
 		strcpy(conf->ifone, "eth0");
 		strcpy(conf->iftwo, "");
 		strcpy(conf->fsone, "/home");
 		strcpy(conf->fstwo, "");
 		conf->tintcol = prepare_colour(255, 255, 255, 100);
-		/*
-		conf->maincol = prepare_xft_colour(d, 20, 20, 20, 255);
-		conf->timecol = prepare_xft_colour(d, 20, 20, 20, 255);
-		conf->divcol = prepare_xft_colour(d, 50, 50, 70, 255);
-		conf->viswscol = prepare_xft_colour(d, 0, 0, 0, 255);
-		conf->inviswscol = prepare_xft_colour(d, 80, 80, 80, 255);
-		conf->groove_dark = prepare_xft_colour(d, 110, 110, 110, 255);
-		conf->groove_light = prepare_xft_colour(d, 180, 180, 180, 255);
-		*/
+		conf->maincol = prepare_colour(20, 20, 20, 255);
+		conf->timecol = prepare_colour(20, 20, 20, 255);
+		conf->divcol = prepare_colour(50, 50, 70, 255);
+		conf->viswscol = prepare_colour(0, 0, 0, 255);
+		conf->inviswscol = prepare_colour(80, 80, 80, 255);
+		conf->groove_dark = prepare_colour(10, 10, 10, 40);
+		conf->groove_light = prepare_colour(250, 250, 250, 40);
 
 		//now overwrite the defaults with any configured values
 		char *confpath = malloc(1024);
@@ -134,28 +132,26 @@ int main(int argc, char **argv) {
 							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->tintcol = col;
 						}
-						/*
 						else if(strcmp(key, "maincol") == 0) {
-							XftColor *col = parse_config_colour(d, value);
+							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->maincol = col;
 						}
 						else if(strcmp(key, "timecol") == 0) {
-							XftColor *col = parse_config_colour(d, value);
+							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->timecol = col;
 						}
 						else if(strcmp(key, "divcol") == 0) {
-							XftColor *col = parse_config_colour(d, value);
+							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->divcol = col;
 						}
 						else if(strcmp(key, "viswscol") == 0) {
-							XftColor *col = parse_config_colour(d, value);
+							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->viswscol = col;
 						}
 						else if(strcmp(key, "inviswscol") == 0) {
-							XftColor *col = parse_config_colour(d, value);
+							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->inviswscol = col;
 						}
-						*/
 					}
 					else {
 						printf("%d\n", success);
@@ -377,8 +373,8 @@ int main(int argc, char **argv) {
 
 			//create a cairo surface for the back buffer
 			ins->cairo_s_bb = cairo_xlib_surface_create(d, ins->bb,
-								XDefaultVisual(d, 0), ins->output->width,
-								conf->depth);
+									XDefaultVisual(d, 0), ins->output->width,
+									conf->depth);
 
 			//and a cairo context from the surface
 			ins->cairo = cairo_create(ins->cairo_s_bb);
@@ -388,21 +384,13 @@ int main(int argc, char **argv) {
 		}
 
 		//prepare the fonts
-		XftFont *time_font = XftFontOpen(d, 0,
-										 XFT_FAMILY, XftTypeString, "sans",
-										 XFT_STYLE, XftTypeString, "bold",
-										 XFT_SIZE, XftTypeDouble, 8.0,
-										 NULL);
-		XftFont *main_font = XftFontOpen(d, 0,
-										 XFT_FAMILY, XftTypeString, "sans",
-										 XFT_SIZE, XftTypeDouble, 8.0,
-										 NULL);
+		//TODO make fonts configurable
 
 		//measure the text y-coord
 		uint32_t textheight = 0;
-		XGlyphInfo gi;
-		XftTextExtents8(d, main_font, "E", 1, &gi);
-		textheight = conf->depth - (conf->depth - gi.height) / 2;
+		cairo_text_extents_t extents;
+		cairo_text_extents(instance_list->cairo, "1", &extents);
+		textheight = conf->depth - ((conf->depth - extents.height) / 2);
 
 	// ========= start the main loop =========
 
@@ -503,8 +491,6 @@ int main(int argc, char **argv) {
 							cairo_paint_with_alpha(ins->cairo, 1.0);
 						}
 
-/*
-
 					// ========= left side =========
 
 						uint32_t tlpadding = conf->lpadding;
@@ -515,16 +501,17 @@ int main(int argc, char **argv) {
 							//is this workspace on my output?
 							if(strcmp(ws_head->output,
 									  ins->output->name) == 0) {
-								XftColor *c;
+								//is this workspace currently visible?
+								struct colour *c = conf->inviswscol;
 								if(strcmp(ws_head->visible, "true") == 0)
 									c = conf->viswscol;
-								else c = conf->inviswscol;
-								XftDrawString8(ins->xft, c, main_font,
-											   tlpadding, textheight,
-											   (XftChar8 *)ws_head->name,
-											   strlen(ws_head->name));
-								tlpadding += 10;
-								tlpadding += render_divider(ins->xft,
+								set_cairo_source_colour(ins->cairo, c);
+								cairo_move_to(ins->cairo,
+											  tlpadding, textheight);
+								cairo_show_text(ins->cairo,
+												ws_head->name);
+								tlpadding += 10; //todo string width
+								tlpadding += render_divider(ins->cairo,
 															tlpadding, LEFT);
 							}
 							ws_head = ws_head->next;
@@ -539,33 +526,29 @@ int main(int argc, char **argv) {
 						struct tm *now = localtime(&rawnow);
 						char time_string[128];
 						strftime(time_string, 128, conf->timefmt, now);
-						XftTextExtents8(d, time_font, time_string,
-										strlen(time_string), &gi);
-						XftDrawString8(ins->xft, conf->timecol, time_font,
-									   ins->output->width -
-									   (gi.width + trpadding), textheight,
-									   (XftChar8 *)time_string,
-									   strlen(time_string));
-						trpadding += gi.width - 1;
+						set_cairo_source_colour(ins->cairo, conf->maincol);
+						cairo_text_extents(ins->cairo, time_string, &extents);
+						cairo_move_to(ins->cairo, ins->output->width -
+									  (extents.width + trpadding), textheight);
+						cairo_show_text(ins->cairo, time_string);
+						trpadding += extents.width - 1;
 
 						//divider
-						trpadding += render_divider(ins->xft,
+						trpadding += render_divider(ins->cairo,
 										ins->output->width - trpadding, RIGHT);
 
 						//date
 						char date_string[256];
 						strftime(date_string, 256, conf->datefmt, now);
-						XftTextExtents8(d, main_font, date_string,
-										strlen(date_string), &gi);
-						XftDrawString8(ins->xft, conf->maincol, main_font,
-									   ins->output->width -
-									   (gi.width + trpadding), textheight, 
-									   (XftChar8 *)date_string,
-									   strlen(date_string));
-						trpadding += gi.width;
+						set_cairo_source_colour(ins->cairo, conf->maincol);
+						cairo_text_extents(ins->cairo, date_string, &extents);
+						cairo_move_to(ins->cairo, ins->output->width -
+									  (extents.width + trpadding), textheight);
+						cairo_show_text(ins->cairo, date_string);
+						trpadding += extents.width - 1;
 
 						//divider
-						trpadding += render_divider(ins->xft,
+						trpadding += render_divider(ins->cairo,
 										ins->output->width - trpadding, RIGHT);
 
 						//ifone
@@ -589,19 +572,16 @@ int main(int argc, char **argv) {
 										conf->ifone);
 
 							if(strlen(ifone_string) > 0) {
-								XftTextExtents8(d, main_font, ifone_string,
-												strlen(ifone_string), &gi);
-								XftDrawString8(ins->xft, conf->maincol,
-											   main_font,
-											   ins->output->width -
-											   (gi.width + trpadding),
-											   textheight, 
-											   (XftChar8 *)ifone_string,
-											   strlen(ifone_string));
-								trpadding += gi.width;
+								cairo_text_extents(ins->cairo, ifone_string,
+												   &extents);
+								cairo_move_to(ins->cairo, ins->output->width -
+											  (extents.width + trpadding),
+											  textheight);
+								cairo_show_text(ins->cairo, ifone_string);
+								trpadding += extents.width - 1;
 
 								//divider
-								trpadding += render_divider(ins->xft,
+								trpadding += render_divider(ins->cairo,
 										ins->output->width - trpadding, RIGHT);
 							}
 						}
@@ -611,18 +591,17 @@ int main(int argc, char **argv) {
 							char str[64];
 							sprintf(str, "%s  %.1fGiB", conf->fsone,
 									(double)fsone_free / (1024 * 1024 * 1024));
-							XftTextExtents8(d, main_font, str,
-											strlen(str), &gi);
-							XftDrawString8(ins->xft, conf->maincol, main_font,
-										   ins->output->width -
-										   (gi.width + trpadding), textheight, 
-										   (XftChar8 *)str,
-										   strlen(str));
-							trpadding += gi.width;
+
+							cairo_text_extents(ins->cairo, str, &extents);
+							cairo_move_to(ins->cairo, ins->output->width -
+										  (extents.width + trpadding),
+										  textheight);
+							cairo_show_text(ins->cairo, str);
+							trpadding += extents.width - 1;
 
 							//divider
-							trpadding += render_divider(ins->xft,
-										ins->output->width - trpadding, RIGHT);
+							trpadding += render_divider(ins->cairo,
+									ins->output->width - trpadding, RIGHT);
 						}
 
 						//fstwo
@@ -630,21 +609,19 @@ int main(int argc, char **argv) {
 							char str[64];
 							sprintf(str, "%s  %.1fGiB", conf->fstwo,
 									(double)fstwo_free / (1024 * 1024 * 1024));
-							XftTextExtents8(d, main_font, str,
-											strlen(str), &gi);
-							XftDrawString8(ins->xft, conf->maincol, main_font,
-										   ins->output->width -
-										   (gi.width + trpadding), textheight, 
-										   (XftChar8 *)str,
-										   strlen(str));
-							trpadding += gi.width;
+
+							cairo_text_extents(ins->cairo, str, &extents);
+							cairo_move_to(ins->cairo, ins->output->width -
+										  (extents.width + trpadding),
+										  textheight);
+							cairo_show_text(ins->cairo, str);
+							trpadding += extents.width - 1;
 
 							//divider
-							trpadding += render_divider(ins->xft,
-										ins->output->width - trpadding, RIGHT);
+							trpadding += render_divider(ins->cairo,
+									ins->output->width - trpadding, RIGHT);
 						}
 
-*/
 					// ========= finish this frame =========
 
 						//draw the back buffer and send to the screen
