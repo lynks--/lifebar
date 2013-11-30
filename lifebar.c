@@ -32,7 +32,8 @@ int main(int argc, char **argv) {
 		strcpy(conf->iftwo, "");
 		strcpy(conf->fsone, "/home");
 		strcpy(conf->fstwo, "");
-		conf->tintcol = prepare_xft_colour(d, 255, 255, 255, 100);
+		conf->tintcol = prepare_colour(255, 255, 255, 100);
+		/*
 		conf->maincol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->timecol = prepare_xft_colour(d, 20, 20, 20, 255);
 		conf->divcol = prepare_xft_colour(d, 50, 50, 70, 255);
@@ -40,6 +41,7 @@ int main(int argc, char **argv) {
 		conf->inviswscol = prepare_xft_colour(d, 80, 80, 80, 255);
 		conf->groove_dark = prepare_xft_colour(d, 110, 110, 110, 255);
 		conf->groove_light = prepare_xft_colour(d, 180, 180, 180, 255);
+		*/
 
 		//now overwrite the defaults with any configured values
 		char *confpath = malloc(1024);
@@ -129,9 +131,10 @@ int main(int argc, char **argv) {
 						else if(strcmp(key, "fstwo") == 0)
 							strcpy(conf->fstwo, value);
 						else if(strcmp(key, "tintcol") == 0) {
-							XftColor *col = parse_config_colour(d, value);
+							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->tintcol = col;
 						}
+						/*
 						else if(strcmp(key, "maincol") == 0) {
 							XftColor *col = parse_config_colour(d, value);
 							if(col != NULL) conf->maincol = col;
@@ -152,6 +155,7 @@ int main(int argc, char **argv) {
 							XftColor *col = parse_config_colour(d, value);
 							if(col != NULL) conf->inviswscol = col;
 						}
+						*/
 					}
 					else {
 						printf("%d\n", success);
@@ -316,7 +320,7 @@ int main(int argc, char **argv) {
 										ins->output->width, conf->depth,
 										XAllPlanes(), ZPixmap);
 
-				//and apply the tint
+				//we apply the tint manually
 				for(i = 0; i < ins->output->width * conf->depth; i++) {
 					//grab the background colour for this pixel
 					unsigned int *c = ((unsigned int *)((*ins->bg).data)) + i;
@@ -326,15 +330,16 @@ int main(int argc, char **argv) {
 
 					//calculate the difference from background to tint
 					int red_d =
-						((conf->tintcol->color.red / 255) - (int)*red) /
-						((255 * 255) / conf->tintcol->color.alpha);
+						(int)((conf->tintcol->red - (int)*red) /
+						(255 / (double)conf->tintcol->alpha));
 					int green_d =
-						((conf->tintcol->color.green / 255) - (int)*green) /
-						((255 * 255) / conf->tintcol->color.alpha);
+						(int)((conf->tintcol->green - (int)*green) /
+						(255 / (double)conf->tintcol->alpha));
 					int blue_d =
-						((conf->tintcol->color.blue / 255) - (int)*blue) /
-						((255 * 255) / conf->tintcol->color.alpha);
+						(int)((conf->tintcol->blue - (int)*blue) /
+						(255 / (double)conf->tintcol->alpha));
 
+					//and update the pixel
 					if(((int)*red + red_d) > 255) *red = 255;
 					else if(((int)*red + red_d) < 0) *red = 0;
 					else *red += red_d;
@@ -356,7 +361,7 @@ int main(int argc, char **argv) {
 			//map the window
 			XMapWindow(d, ins->w);
 
-			//create a graphics context
+			//create a graphics context used for xlib drawing tasks
 			ins->gc = XCreateGC(d, ins->w, 0, NULL);
 
 			//wait for the mapnotify event before proceeding
@@ -366,25 +371,23 @@ int main(int argc, char **argv) {
 				if(e.type == MapNotify) break;
 			}
 
-			//just to avoid calling it so regularly
-			Visual *v = DefaultVisual(d, 0);
-
-			//TODO we should use cairo. we need to keep the background image,
-			//pre-tinted, as well as a backbuffer, both in cairo contexts (same context?)
-			//get rid of the xft context stuff and properly split the
-			//rendering code
-
-			//back buffer
+			//create the back buffer pixmap
 			ins->bb = XCreatePixmap(d, ins->w, ins->output->width,
 									conf->depth, 24);
 
-			//create the xft context
-			ins->xft = XftDrawCreate(d, ins->bb, v, DefaultColormap(d, 0));
+			//create a cairo surface for the back buffer
+			ins->cairo_s_bb = cairo_xlib_surface_create(d, ins->bb,
+								XDefaultVisual(d, 0), ins->output->width,
+								conf->depth);
+
+			//and a cairo context from the surface
+			ins->cairo = cairo_create(ins->cairo_s_bb);
 
 			//continue iterating over active outputs
 			output_list = output_list->next; 
 		}
 
+		//prepare the fonts
 		XftFont *time_font = XftFontOpen(d, 0,
 										 XFT_FAMILY, XftTypeString, "sans",
 										 XFT_STYLE, XftTypeString, "bold",
@@ -395,6 +398,7 @@ int main(int argc, char **argv) {
 										 XFT_SIZE, XftTypeDouble, 8.0,
 										 NULL);
 
+		//measure the text y-coord
 		uint32_t textheight = 0;
 		XGlyphInfo gi;
 		XftTextExtents8(d, main_font, "E", 1, &gi);
@@ -487,14 +491,19 @@ int main(int argc, char **argv) {
 							*/
 						}
 
-					// ========= draw the tinted background =========
+					// ========= draw the background =========
 
+						//if we have got a background pixmap, we use it
+						//otherwise we use tint colour with an alpha of 255
 						if(ins->bg != NULL)
 							XPutImage(d, ins->bb, ins->gc, ins->bg, 0, 0, 0, 0,
 									  ins->output->width, conf->depth);
-						else
-							XftDrawRect(ins->xft, conf->tintcol, 0, 0,
-										ins->output->width, conf->depth);
+						else {
+							set_cairo_source_colour(ins->cairo, conf->tintcol);
+							cairo_paint_with_alpha(ins->cairo, 1.0);
+						}
+
+/*
 
 					// ========= left side =========
 
@@ -635,6 +644,7 @@ int main(int argc, char **argv) {
 										ins->output->width - trpadding, RIGHT);
 						}
 
+*/
 					// ========= finish this frame =========
 
 						//draw the back buffer and send to the screen

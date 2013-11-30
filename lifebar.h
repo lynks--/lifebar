@@ -26,6 +26,7 @@
 #include <sys/statvfs.h>
 #include <sys/un.h>
 #include <netinet/in.h>
+#include <cairo.h>
 #include <time.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -81,12 +82,21 @@ struct i3_workspace {
 
 struct instance {
 	Window w;
-	XImage *bg;	//background
-	Pixmap bb;	//backbuffer
-	GC gc;		//graphics context
-	XftDraw *xft;
+	XImage *bg;						//background
+	Pixmap bb;						//backbuffer pixmap
+	cairo_surface_t *cairo_s_bb;	//cairo surface for the backbuffer
+	cairo_t *cairo;					//cairo context for the backbuffer
+	GC gc;							//graphics context
+//	XftDraw *xft;
 	struct i3_output *output;
 	struct instance *next;
+};
+
+struct colour {
+	unsigned char red;
+	unsigned char green;
+	unsigned char blue;
+	unsigned char alpha;
 };
 
 struct config {
@@ -103,7 +113,7 @@ struct config {
 	char iftwo[32];			//interface name, eg eth0
 	char fsone[32];			//fs location, eg /home
 	char fstwo[32];			//fs location, eg /home
-	XftColor *tintcol;		//transparency tint colour
+	struct colour *tintcol;	//transparency tint colour
 	XftColor *maincol;		//main text colour
 	XftColor *timecol;		//time text colour
 	XftColor *divcol;		//divider line colour for line divider style
@@ -118,6 +128,10 @@ extern struct config *conf;
 int render_divider(XftDraw *, int, int);
 
 XftColor *prepare_xft_colour(Display *, int, int, int, int);
+
+struct colour *prepare_colour(int, int, int, int);
+
+void set_cairo_source_colour(cairo_t *, struct colour*);
 
 int is_key_label(char *);
 
@@ -135,4 +149,4 @@ struct i3_workspace *get_i3_workspaces();
 
 void get_i3_sockpath(char **);
 
-XftColor *parse_config_colour(Display *, char *);
+struct colour *parse_config_colour(char *);
