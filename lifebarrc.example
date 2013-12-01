@@ -22,17 +22,20 @@ fsone		/home
 timefmt		"%H:%M"
 datefmt		"%A %e %B %Y"
 
-# screen edge and divider padding
+# screen edge and divider padding in pixels
 lpadding	10
 rpadding	10
 divpadding	10
+
+# padding between key and value text in pixels
+kvpadding	6
 
 # divider style, valid options are 'line' and 'groove'
 divstyle	groove
 
 # colour format is RED,GREEN,BLUE,ALPHA with values of 0-255
-# background colour, for (pseudo)transparency use an ALPHA value less than 255
-tintcol		"255,255,255,100"
+# main background colour
+tintcol		"255,255,255, 60"
 # main key and value text colours
 keycol		" 20, 20, 20,255"
 valcol		" 20, 20, 20,200"
@@ -47,6 +50,16 @@ viswscol	" 20, 20, 20,255"
 # workspace name text colour when that workspace is not visible
 inviswscol	" 20, 20, 20,100"
 
-# layout all workspaces / ifone | date | time
+# fonts
+keyfont		"sans-8-bold"
+valfont		"sans-8"
+timefont	"sans-8-bold"
+datefont	"sans-8"
+alarmfont	"sans-8-bold"
+wsfont		"sans-8"
+
+# layout all workspaces / fsone | wanip | ifone | date | time
+# battery, volume, temperature, cpu usage, ram usage (graphs?) wifi strength
+# vpn status
 
 # vim: syntax=sh softtabstop=8 tabstop=8:

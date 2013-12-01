@@ -12,10 +12,12 @@ int render_divider(cairo_t *cairo, int x, int d) {
 		}
 		else if(conf->divstyle == GROOVE) {
 			set_cairo_source_colour(cairo, conf->groove_light);
-			cairo_rectangle(cairo, x - conf->divpadding, 0, 2, conf->depth);
+			cairo_rectangle(cairo, x - conf->divpadding, 0,
+								   1, conf->depth);
 			cairo_fill(cairo);
 			set_cairo_source_colour(cairo, conf->groove_dark);
-			cairo_rectangle(cairo, x - (conf->divpadding + 1), 0, 2, conf->depth);
+			cairo_rectangle(cairo, x - (conf->divpadding + 1), 0,
+								   1, conf->depth);
 			cairo_fill(cairo);
 			return (conf->divpadding * 2) + 2;
 		}
@@ -30,6 +32,15 @@ int render_divider(cairo_t *cairo, int x, int d) {
 			return (conf->divpadding * 2) + conf->divwidth + 1;
 		}
 		else if(conf->divstyle == GROOVE) {
+			set_cairo_source_colour(cairo, conf->groove_light);
+			cairo_rectangle(cairo, x + conf->divpadding + 1, 0,
+								   1, conf->depth);
+			cairo_fill(cairo);
+			set_cairo_source_colour(cairo, conf->groove_dark);
+			cairo_rectangle(cairo, x + conf->divpadding, 0,
+								   1, conf->depth);
+			cairo_fill(cairo);
+			return (conf->divpadding * 2) + 2;
 		}
 	}
 	return 10;
@@ -59,6 +70,7 @@ struct colour *parse_config_colour(char *value) {
 }
 
 void set_cairo_source_colour(cairo_t *cairo, struct colour *col) {
+	//cairo uses 0.0->1.0 for 0->255
 	double r = col->red / (double)255;
 	double g = col->green / (double)255;
 	double b = col->blue / (double)255;

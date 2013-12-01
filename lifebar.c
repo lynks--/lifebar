@@ -33,8 +33,11 @@ int main(int argc, char **argv) {
 		strcpy(conf->fsone, "/home");
 		strcpy(conf->fstwo, "");
 		conf->tintcol = prepare_colour(255, 255, 255, 100);
-		conf->maincol = prepare_colour(20, 20, 20, 255);
+		conf->keycol = prepare_colour(20, 20, 20, 255);
+		conf->valcol = prepare_colour(50, 50, 50, 255);
 		conf->timecol = prepare_colour(20, 20, 20, 255);
+		conf->datecol = prepare_colour(20, 20, 20, 255);
+		conf->alarmcol = prepare_colour(200, 20, 20, 255);
 		conf->divcol = prepare_colour(50, 50, 70, 255);
 		conf->viswscol = prepare_colour(0, 0, 0, 255);
 		conf->inviswscol = prepare_colour(80, 80, 80, 255);
@@ -132,13 +135,25 @@ int main(int argc, char **argv) {
 							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->tintcol = col;
 						}
-						else if(strcmp(key, "maincol") == 0) {
+						else if(strcmp(key, "keycol") == 0) {
 							struct colour *col = parse_config_colour(value);
-							if(col != NULL) conf->maincol = col;
+							if(col != NULL) conf->keycol = col;
+						}
+						else if(strcmp(key, "valcol") == 0) {
+							struct colour *col = parse_config_colour(value);
+							if(col != NULL) conf->valcol = col;
 						}
 						else if(strcmp(key, "timecol") == 0) {
 							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->timecol = col;
+						}
+						else if(strcmp(key, "datecol") == 0) {
+							struct colour *col = parse_config_colour(value);
+							if(col != NULL) conf->datecol = col;
+						}
+						else if(strcmp(key, "alarmcol") == 0) {
+							struct colour *col = parse_config_colour(value);
+							if(col != NULL) conf->alarmcol = col;
 						}
 						else if(strcmp(key, "divcol") == 0) {
 							struct colour *col = parse_config_colour(value);
@@ -389,7 +404,7 @@ int main(int argc, char **argv) {
 		//measure the text y-coord
 		uint32_t textheight = 0;
 		cairo_text_extents_t extents;
-		cairo_text_extents(instance_list->cairo, "1", &extents);
+		cairo_text_extents(instance_list->cairo, "ABCDEFG", &extents);
 		textheight = conf->depth - ((conf->depth - extents.height) / 2);
 
 	// ========= start the main loop =========
@@ -526,7 +541,7 @@ int main(int argc, char **argv) {
 						struct tm *now = localtime(&rawnow);
 						char time_string[128];
 						strftime(time_string, 128, conf->timefmt, now);
-						set_cairo_source_colour(ins->cairo, conf->maincol);
+						set_cairo_source_colour(ins->cairo, conf->keycol);
 						cairo_text_extents(ins->cairo, time_string, &extents);
 						cairo_move_to(ins->cairo, ins->output->width -
 									  (extents.width + trpadding), textheight);
@@ -540,7 +555,7 @@ int main(int argc, char **argv) {
 						//date
 						char date_string[256];
 						strftime(date_string, 256, conf->datefmt, now);
-						set_cairo_source_colour(ins->cairo, conf->maincol);
+						set_cairo_source_colour(ins->cairo, conf->keycol);
 						cairo_text_extents(ins->cairo, date_string, &extents);
 						cairo_move_to(ins->cairo, ins->output->width -
 									  (extents.width + trpadding), textheight);
@@ -572,6 +587,8 @@ int main(int argc, char **argv) {
 										conf->ifone);
 
 							if(strlen(ifone_string) > 0) {
+								set_cairo_source_colour(ins->cairo,
+														conf->keycol);
 								cairo_text_extents(ins->cairo, ifone_string,
 												   &extents);
 								cairo_move_to(ins->cairo, ins->output->width -
@@ -592,6 +609,7 @@ int main(int argc, char **argv) {
 							sprintf(str, "%s  %.1fGiB", conf->fsone,
 									(double)fsone_free / (1024 * 1024 * 1024));
 
+							set_cairo_source_colour(ins->cairo, conf->keycol);
 							cairo_text_extents(ins->cairo, str, &extents);
 							cairo_move_to(ins->cairo, ins->output->width -
 										  (extents.width + trpadding),
@@ -610,6 +628,7 @@ int main(int argc, char **argv) {
 							sprintf(str, "%s  %.1fGiB", conf->fstwo,
 									(double)fstwo_free / (1024 * 1024 * 1024));
 
+							set_cairo_source_colour(ins->cairo, conf->keycol);
 							cairo_text_extents(ins->cairo, str, &extents);
 							cairo_move_to(ins->cairo, ins->output->width -
 										  (extents.width + trpadding),

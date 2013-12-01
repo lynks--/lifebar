@@ -115,8 +115,11 @@ struct config {
 	char fsone[32];					//fs location, eg /home
 	char fstwo[32];					//fs location, eg /home
 	struct colour *tintcol;			//transparency tint colour
-	struct colour *maincol;			//main text colour
+	struct colour *keycol;			//main key text colour
+	struct colour *valcol;			//main value text colour
 	struct colour *timecol;			//time text colour
+	struct colour *datecol;			//date text colour
+	struct colour *alarmcol;		//alarm text colour
 	struct colour *divcol;			//divider line colour for line divider style
 	struct colour *viswscol;		//text colour for visible workspace
 	struct colour *inviswscol;		//text colour for invisible workspace
