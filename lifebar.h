@@ -22,10 +22,12 @@
 #include <X11/Xft/Xft.h>
 #include <X11/extensions/Xrandr.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/statvfs.h>
 #include <sys/un.h>
 #include <netinet/in.h>
+#include <net/if.h>
 #include <cairo.h>
 #include <cairo-xlib.h>
 #include <time.h>

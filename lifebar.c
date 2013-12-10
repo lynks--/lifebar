@@ -419,29 +419,45 @@ int main(int argc, char **argv) {
 				//lookup interface addresses
 				struct ifaddrs *ifap = NULL;
 				struct ifaddrs *ifone = NULL;
+				struct ifaddrs *iftwo = NULL;
 				if(getifaddrs(&ifap)) perror("getifaddrs");
-				else if(!ifone_warned) {
-					while(1) {
-						if((strcmp(ifap->ifa_name, conf->ifone) == 0) &&
-						   ((ifap->ifa_addr->sa_family == AF_INET) ||
-							(ifap->ifa_addr == NULL))) { //TODO not matching down
-							ifone = ifap;
-							break;
-						}
-						else {
-							if(ifap->ifa_next == NULL) {
-								fprintf(stderr,
-										"%sfailed to find interface '%s'\n",
-										BAD_MSG, conf->ifone);
-								ifone_warned = 1;
-								break;
-							}
-							else {
-								ifap = ifap->ifa_next;
-								continue;
-							}
-						}
+				while(1) {
+					if(strcmp(ifap->ifa_name, conf->ifone) == 0) {
+						if(ifone == NULL)
+							ifone = ifap; //first encounter
+						else if(ifap->ifa_addr->sa_family == AF_INET)
+							ifone = ifap; //ipv4 overwrites any
+						else if(ifap->ifa_addr->sa_family == AF_INET6 &&
+									ifone->ifa_addr->sa_family != AF_INET)
+							ifone = ifap; //ipv6 overwrites any but ipv4
 					}
+					else if(strcmp(ifap->ifa_name, conf->iftwo) == 0) {
+						if(iftwo == NULL)
+							iftwo = ifap; //first encounter
+						else if(ifap->ifa_addr->sa_family == AF_INET)
+							iftwo = ifap; //ipv4 overwrites any
+						else if(ifap->ifa_addr->sa_family == AF_INET6 &&
+									iftwo->ifa_addr->sa_family != AF_INET)
+							iftwo = ifap; //ipv6 overwrites any but ipv4
+					}
+
+					if(ifap->ifa_next == NULL) {
+						if(ifone == NULL && !ifone_warned) {
+							fprintf(stderr,
+									"%sfailed to find interface '%s'\n",
+									BAD_MSG, conf->ifone);
+							ifone_warned = 1;
+						}
+						if(iftwo == NULL && !iftwo_warned) {
+							fprintf(stderr,
+									"%sfailed to find interface '%s'\n",
+									BAD_MSG, conf->iftwo);
+							iftwo_warned = 1;
+						}
+						break;
+					}
+
+					ifap = ifap->ifa_next;
 				}
 
 				//query i3 for workspace information
@@ -571,17 +587,24 @@ int main(int argc, char **argv) {
 							char ifone_string[256];
 							ifone_string[0] = '\0';
 
-							//if this is an ipv4 or ipv6 address
-							if((ifone->ifa_addr->sa_family == AF_INET) ||
-							   (ifone->ifa_addr->sa_family == AF_INET6)) {
-								struct sockaddr_in *addr =
-									(struct sockaddr_in *)ifone->ifa_addr;
-								char readable_addr[256];
-								inet_ntop(addr->sin_family, &(addr->sin_addr),
-										  readable_addr, 256);
-							
-								sprintf(ifone_string, "%s  %s", conf->ifone,
-										readable_addr);
+							//if this interface is up TODO see IFF_RUNNING
+							if(ifone->ifa_flags & IFF_UP) {
+								//if this is an ipv4 or ipv6 address
+								if((ifone->ifa_addr->sa_family == AF_INET) ||
+								   (ifone->ifa_addr->sa_family == AF_INET6)) {
+									struct sockaddr_in *addr =
+										(struct sockaddr_in *)ifone->ifa_addr;
+									char readable_addr[256];
+									inet_ntop(addr->sin_family, &(addr->sin_addr),
+											  readable_addr, 256);
+								
+									sprintf(ifone_string, "%s  %s", conf->ifone,
+											readable_addr);
+								}
+								else sprintf(ifone_string,
+											 "%s  unknown address family %d",
+											 conf->ifone,
+											 ifone->ifa_addr->sa_family);
 							}
 							else sprintf(ifone_string, "%s  down",
 										conf->ifone);
@@ -595,6 +618,50 @@ int main(int argc, char **argv) {
 											  (extents.width + trpadding),
 											  textheight);
 								cairo_show_text(ins->cairo, ifone_string);
+								trpadding += extents.width - 1;
+
+								//divider
+								trpadding += render_divider(ins->cairo,
+										ins->output->width - trpadding, RIGHT);
+							}
+						}
+
+						//iftwo
+						if(iftwo != NULL) {
+							char iftwo_string[256];
+							iftwo_string[0] = '\0';
+
+							//if this interface is up TODO see IFF_RUNNING
+							if(iftwo->ifa_flags & IFF_UP) {
+								//if this is an ipv4 or ipv6 address
+								if((iftwo->ifa_addr->sa_family == AF_INET) ||
+								   (iftwo->ifa_addr->sa_family == AF_INET6)) {
+									struct sockaddr_in *addr =
+										(struct sockaddr_in *)iftwo->ifa_addr;
+									char readable_addr[256];
+									inet_ntop(addr->sin_family, &(addr->sin_addr),
+											  readable_addr, 256);
+
+									sprintf(iftwo_string, "%s  %s", conf->iftwo,
+											readable_addr);
+								}
+								else sprintf(iftwo_string,
+											 "%s  unknown address family %d",
+											 conf->iftwo,
+											 iftwo->ifa_addr->sa_family);
+							}
+							else sprintf(iftwo_string, "%s  down",
+										conf->iftwo);
+
+							if(strlen(iftwo_string) > 0) {
+								set_cairo_source_colour(ins->cairo,
+														conf->keycol);
+								cairo_text_extents(ins->cairo, iftwo_string,
+												   &extents);
+								cairo_move_to(ins->cairo, ins->output->width -
+											  (extents.width + trpadding),
+											  textheight);
+								cairo_show_text(ins->cairo, iftwo_string);
 								trpadding += extents.width - 1;
 
 								//divider
