@@ -4,6 +4,10 @@ key/value padding
 time colour
 date colour
 
+good and bad colours
+
+good and bad thresholds (battery, signal strength)
+
 workspace text extents
 
 font selection
@@ -13,7 +17,11 @@ mouse over workspaces
 alarm system
 mouse over time (set alarm)
 
-functionality:
+vertical nudge
+
+config module order and presence
+
+modules:
 	wan ip
 	cpu temp
 	cpu usage
