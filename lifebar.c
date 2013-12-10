@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
 		strcpy(conf->iftwo, "");
 		strcpy(conf->fsone, "/home");
 		strcpy(conf->fstwo, "");
-		conf->tintcol = prepare_colour(255, 255, 255, 100);
+		conf->tintcol = prepare_colour(255, 255, 255, 80);
 		conf->keycol = prepare_colour(20, 20, 20, 255);
 		conf->valcol = prepare_colour(50, 50, 50, 255);
 		conf->timecol = prepare_colour(20, 20, 20, 255);
@@ -442,13 +442,15 @@ int main(int argc, char **argv) {
 					}
 
 					if(ifap->ifa_next == NULL) {
-						if(ifone == NULL && !ifone_warned) {
+						if(ifone == NULL && !ifone_warned &&
+										strlen(conf->ifone) > 0) {
 							fprintf(stderr,
 									"%sfailed to find interface '%s'\n",
 									BAD_MSG, conf->ifone);
 							ifone_warned = 1;
 						}
-						if(iftwo == NULL && !iftwo_warned) {
+						if(iftwo == NULL && !iftwo_warned &&
+										strlen(conf->iftwo) > 0) {
 							fprintf(stderr,
 									"%sfailed to find interface '%s'\n",
 									BAD_MSG, conf->iftwo);
