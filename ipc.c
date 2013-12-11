@@ -87,6 +87,15 @@ void free_ipc_result(char *c) {
 	free(c - 14);
 }
 
+void free_workspaces_list(struct i3_workspace *head) {
+	struct i3_workspace *next;
+	while(head != NULL) {
+		next = head->next;
+		free(head);
+		head = next;
+	}
+}
+
 struct i3_output *get_i3_outputs(int i3_sock) {
 	//query i3 for the current outputs and build a linked list
 	//note: this function returns a list in reverse order to the json array
@@ -194,7 +203,6 @@ struct i3_workspace *get_i3_workspaces(int i3_sock) {
 		else if((c == ',' || c == '}') && inside == 2) {
 			inside = 0;
 			*labelptr = '\0';
-			//TAIL = NULL HERE CAUSING SEGFAULT :(
 			handle_workspace_value_label(tail, key, label);
 			key[0] = '\0';
 			labelptr = label;

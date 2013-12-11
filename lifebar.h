@@ -147,6 +147,8 @@ void i3_ipc_send(char **, int, int, char *);
 
 void free_ipc_result(char *);
 
+void free_workspaces_list(struct i3_workspace *);
+
 struct i3_output *get_i3_outputs();
 
 struct i3_workspace *get_i3_workspaces();

@@ -417,10 +417,12 @@ int main(int argc, char **argv) {
 			// ========= gather information for this iteration =========
 
 				//lookup interface addresses
+				struct ifaddrs *ifah = NULL; //freed after instance loop
 				struct ifaddrs *ifap = NULL;
 				struct ifaddrs *ifone = NULL;
 				struct ifaddrs *iftwo = NULL;
-				if(getifaddrs(&ifap)) perror("getifaddrs");
+				if(getifaddrs(&ifah)) perror("getifaddrs");
+				ifap = ifah;
 				while(1) {
 					if(strcmp(ifap->ifa_name, conf->ifone) == 0) {
 						if(ifone == NULL)
@@ -463,6 +465,7 @@ int main(int argc, char **argv) {
 				}
 
 				//query i3 for workspace information
+				//NOTE: this is freed after the instance loop
 				struct i3_workspace *workspaces_list =
 					get_i3_workspaces(i3_sock);
 				struct i3_workspace *ws_head;
@@ -719,11 +722,17 @@ int main(int argc, char **argv) {
 
 						//next instance
 						ins = ins->next;
-				}
+
+				} //end instance iteration
+
+			// ========= free the information for this iteration
+
+				free_workspaces_list(workspaces_list);
+				freeifaddrs(ifah);
 
 				//control fps
 				usleep(50000);
 
-		}
+		} //end main loop
 
 }
