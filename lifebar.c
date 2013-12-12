@@ -592,7 +592,7 @@ int main(int argc, char **argv) {
 							char ifone_string[256];
 							ifone_string[0] = '\0';
 
-							//if this interface is up TODO see IFF_RUNNING
+							//if this interface is up
 							if(ifone->ifa_flags & IFF_UP) {
 								//if this is an ipv4 or ipv6 address
 								if((ifone->ifa_addr->sa_family == AF_INET) ||
@@ -636,7 +636,7 @@ int main(int argc, char **argv) {
 							char iftwo_string[256];
 							iftwo_string[0] = '\0';
 
-							//if this interface is up TODO see IFF_RUNNING
+							//if this interface is up
 							if(iftwo->ifa_flags & IFF_UP) {
 								//if this is an ipv4 or ipv6 address
 								if((iftwo->ifa_addr->sa_family == AF_INET) ||

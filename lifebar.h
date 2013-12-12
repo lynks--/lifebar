@@ -15,6 +15,9 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * acpi.c and acpi.h are the work of joey@kitenet.net
+ *
 */
 
 #include <X11/Xlib.h>
@@ -37,6 +40,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <ifaddrs.h>
+
+#include "acpi.h"
 
 //i3 ipc message types
 #define COMMAND 0
