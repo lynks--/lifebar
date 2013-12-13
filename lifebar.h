@@ -37,6 +37,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <string.h>
 #include <unistd.h>
 #include <ifaddrs.h>
@@ -77,7 +78,7 @@ struct batt_info {
 	uint32_t percent;				//how full the battery is 0-100 inc
 	uint32_t state;					//CHARGING DISCHARGING FULL EMPTY
 	uint32_t time;					//how long until FULL/EMPTY in seconds
-}
+};
 
 struct i3_output {
 	char name[16];
@@ -171,3 +172,7 @@ struct i3_workspace *get_i3_workspaces();
 void get_i3_sockpath(char **);
 
 struct colour *parse_config_colour(char *);
+
+int count_acpi_batteries();
+
+void read_acpi_battery(int, struct batt_info *);

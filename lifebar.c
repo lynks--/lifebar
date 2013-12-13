@@ -408,10 +408,10 @@ int main(int argc, char **argv) {
 		textheight = conf->depth - ((conf->depth - extents.height) / 2);
 
 		//detect acpi power sources
-		int batt_count = detect_acpi_batteries()
-		struct batt_info *batt_info[batt_count];
+		int batt_count = count_acpi_batteries();
+		struct batt_info *batteries[batt_count];
 		for(i = 0; i < batt_count; i++)
-			batt_info[i] = malloc(sizeof batt_info[i]);
+			batteries[i] = malloc(sizeof batteries[i]);
 
 	// ========= start the main loop =========
 
@@ -507,8 +507,8 @@ int main(int argc, char **argv) {
 				}
 
 				//read battery information
-				for(i = 0; i < acpi_batt_count; i++)
-					acpi_read(i, batt_info[i]);
+				for(i = 0; i < batt_count; i++)
+					read_acpi_battery(i, batteries[i]);
 
 				//TODO read thermal information
 
@@ -727,6 +727,7 @@ int main(int argc, char **argv) {
 						}
 
 						//battery information
+						/*
 						for(i = 0; i < acpi_batt_count; i++) {
 							//convert status to string
 							char status[64];
@@ -764,6 +765,7 @@ int main(int argc, char **argv) {
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);
 						}
+						*/
 
 					// ========= finish this frame =========
 
