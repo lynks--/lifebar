@@ -67,6 +67,18 @@
 #define BAD_MSG "[ \x1b[31m:(\x1b[0m ] "
 #define GOOD_MSG "[ \x1b[92m:)\x1b[0m ] "
 
+//battery state
+#define CHARGING 0
+#define DISCHARGING 1
+#define FULL 2
+#define EMPTY 3
+
+struct batt_info {
+	uint32_t percent;				//how full the battery is 0-100 inc
+	uint32_t state;					//CHARGING DISCHARGING FULL EMPTY
+	uint32_t time;					//how long until FULL/EMPTY in seconds
+}
+
 struct i3_output {
 	char name[16];
 	char active[16];
