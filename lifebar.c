@@ -407,11 +407,11 @@ int main(int argc, char **argv) {
 		cairo_text_extents(instance_list->cairo, "ABCDEFG", &extents);
 		textheight = conf->depth - ((conf->depth - extents.height) / 2);
 
-		//detect power sources
-		acpi_supported();
-		apm_info *batt_info[acpi_batt_count];
-		for(i = 0; i < acpi_batt_count; i++)
-			batt_info[i] = (apm_info *)malloc(sizeof(apm_info));
+		//detect acpi power sources
+		int batt_count = detect_acpi_batteries()
+		struct batt_info *batt_info[batt_count];
+		for(i = 0; i < batt_count; i++)
+			batt_info[i] = malloc(sizeof batt_info[i]);
 
 	// ========= start the main loop =========
 
