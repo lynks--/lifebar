@@ -42,6 +42,7 @@
 #include <ifaddrs.h>
 
 #include "acpi.h"
+#include "apm.h"
 
 //i3 ipc message types
 #define COMMAND 0
