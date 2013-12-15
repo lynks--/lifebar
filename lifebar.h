@@ -74,6 +74,9 @@
 #define FULL 2
 #define EMPTY 3
 
+//max workspaces tracked for click events
+#define MAX_WORKSPACES 128
+
 struct batt_info {
 	uint32_t percent;				//how full the battery is 0-100 inc
 	uint32_t state;					//CHARGING DISCHARGING FULL EMPTY
@@ -99,6 +102,11 @@ struct i3_workspace {
 	struct i3_workspace *next;
 };
 
+struct ws_layout {
+	struct i3_workspace *wsp[MAX_WORKSPACES];
+	uint32_t x_max[MAX_WORKSPACES];
+};
+
 struct instance {
 	Window w;
 	XImage *bg;						//background
@@ -106,8 +114,8 @@ struct instance {
 	cairo_surface_t *cairo_s_bb;	//cairo surface for the backbuffer
 	cairo_t *cairo;					//cairo context for the backbuffer
 	GC gc;							//graphics context
-//	XftDraw *xft;
-	struct i3_output *output;
+	struct i3_output *output;		//output info for this instance
+	struct ws_layout *ws_layout;	//store positions of ws dividers for clicks
 	struct instance *next;
 };
 

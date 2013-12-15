@@ -266,6 +266,7 @@ int main(int argc, char **argv) {
 			struct instance *ins = malloc(sizeof *ins);
 			ins->next = instance_list;
 			ins->output = output_list;
+			ins->ws_layout = malloc(sizeof ins->ws_layout);
 			instance_list = ins;
 
 			//create the window
@@ -522,10 +523,24 @@ int main(int argc, char **argv) {
 
 						if(mouse_clicked) {
 							//check if this instance has been clicked on
-							/*
 							if(mouse_x > ins->output->x &&
-							   mouse_x < (ins->output->x + ins->output->width)
-							*/
+							   mouse_x <
+									(ins->output->x + ins->output->width)) {
+								for(i = 0; i < MAX_WORKSPACES; i++) {
+									if(ins->ws_layout->wsp[i] == NULL)
+										break;
+									if(mouse_x < ins->ws_layout->x_max[i]) {
+										char i3_payload[256];
+										sprintf(i3_payload,
+												"workspace %s", 
+												ins->ws_layout->wsp[i]->name);
+										char *res;
+										i3_ipc_send(&res, i3_sock, COMMAND, i3_payload);
+										free_ipc_result(res);
+										break;
+									}
+								}
+							}
 						}
 
 					// ========= draw the background =========
@@ -546,6 +561,7 @@ int main(int argc, char **argv) {
 
 						//workspaces
 						ws_head = workspaces_list;
+						int ws_index = 0;
 						while(ws_head != NULL) {
 							//is this workspace on my output?
 							if(strcmp(ws_head->output,
@@ -555,16 +571,32 @@ int main(int argc, char **argv) {
 								if(strcmp(ws_head->visible, "true") == 0)
 									c = conf->viswscol;
 								set_cairo_source_colour(ins->cairo, c);
+								cairo_text_extents(ins->cairo, ws_head->name,
+												   &extents);
 								cairo_move_to(ins->cairo,
 											  tlpadding, textheight);
 								cairo_show_text(ins->cairo,
 												ws_head->name);
-								tlpadding += 10; //todo string width
+
+								//update the padding
+								tlpadding += extents.width + 2;
+
+								//store this x max for future click events
+								ins->ws_layout->wsp[ws_index] = ws_head;
+								ins->ws_layout->x_max[ws_index] =
+									tlpadding + conf->divpadding;
+
+								//divider
 								tlpadding += render_divider(ins->cairo,
 															tlpadding, LEFT);
+
+								ws_index++;
 							}
 							ws_head = ws_head->next;
 						}
+
+						//cap the workspace layout for this frame
+						ins->ws_layout->wsp[ws_index] = NULL;
 
 					// ========= right side =========
 
