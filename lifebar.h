@@ -90,7 +90,6 @@ struct instance {
 	cairo_surface_t *cairo_s_bb;	//cairo surface for the backbuffer
 	cairo_t *cairo;					//cairo context for the backbuffer
 	GC gc;							//graphics context
-//	XftDraw *xft;
 	struct i3_output *output;
 	struct instance *next;
 };
