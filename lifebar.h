@@ -52,6 +52,9 @@
 #define GET_BAR_CONFIG 6
 #define GET_VERSION 7
 
+//i3 header length
+#define I3_HEADER_LENGTH 14
+
 //config.position options
 #define TOP 0
 #define BOTTOM 1

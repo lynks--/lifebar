@@ -651,7 +651,7 @@ int main(int argc, char **argv) {
 									sprintf(ifone_string, "%s  %s", conf->ifone,
 											readable_addr);
 								}
-								else sprintf(ifone_string, "%s down",
+								else sprintf(ifone_string, "%s  down",
 											 conf->ifone);
 							}
 							else sprintf(ifone_string, "%s  down",
@@ -693,7 +693,7 @@ int main(int argc, char **argv) {
 									sprintf(iftwo_string, "%s  %s", conf->iftwo,
 											readable_addr);
 								}
-								else sprintf(iftwo_string, "%s down",
+								else sprintf(iftwo_string, "%s  down",
 											 conf->iftwo);
 							}
 							else sprintf(iftwo_string, "%s  down",
