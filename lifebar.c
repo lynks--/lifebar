@@ -513,7 +513,6 @@ int main(int argc, char **argv) {
 
 				//TODO read thermal information
 
-
 			// ========= iterate over each instance, drawing it =========
 
 				struct instance *ins = instance_list;
@@ -529,13 +528,16 @@ int main(int argc, char **argv) {
 								for(i = 0; i < MAX_WORKSPACES; i++) {
 									if(ins->ws_layout->wsp[i] == NULL)
 										break;
-									if(mouse_x < ins->ws_layout->x_max[i]) {
+									if(mouse_x <
+												ins->output->x +
+												ins->ws_layout->x_max[i]) {
 										char i3_payload[256];
 										sprintf(i3_payload,
 												"workspace %s", 
 												ins->ws_layout->wsp[i]->name);
 										char *res;
-										i3_ipc_send(&res, i3_sock, COMMAND, i3_payload);
+										i3_ipc_send(&res, i3_sock, COMMAND,
+													i3_payload);
 										free_ipc_result(res);
 										break;
 									}
@@ -566,11 +568,14 @@ int main(int argc, char **argv) {
 							//is this workspace on my output?
 							if(strcmp(ws_head->output,
 									  ins->output->name) == 0) {
-								//is this workspace currently visible?
+
+								//set colour based on visibility
 								struct colour *c = conf->inviswscol;
 								if(strcmp(ws_head->visible, "true") == 0)
 									c = conf->viswscol;
 								set_cairo_source_colour(ins->cairo, c);
+
+								//draw the text
 								cairo_text_extents(ins->cairo, ws_head->name,
 												   &extents);
 								cairo_move_to(ins->cairo,
@@ -584,7 +589,7 @@ int main(int argc, char **argv) {
 								//store this x max for future click events
 								ins->ws_layout->wsp[ws_index] = ws_head;
 								ins->ws_layout->x_max[ws_index] =
-									tlpadding + conf->divpadding;
+									tlpadding + conf->divpadding + 1;
 
 								//divider
 								tlpadding += render_divider(ins->cairo,
