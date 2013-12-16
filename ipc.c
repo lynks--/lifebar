@@ -63,21 +63,56 @@ void i3_ipc_send(char **ret, int i3_sock, int type, char *payload) {
 	//we pack the buffer and send it
 	int i;
 	int plen = strlen(payload);
-	char buf[plen + 14];
+	char buf[plen + I3_HEADER_LENGTH];
 	strcpy(buf, "i3-ipc");
 	*((int *)(buf +  6)) = plen;
 	*((int *)(buf + 10)) = type;
-	strcpy(buf + 14, payload);
+	strcpy(buf + I3_HEADER_LENGTH, payload);
 	write(i3_sock, buf, plen + 14);
 
-	//and read the response
-	char *recv_buf = malloc(4096);
-	ssize_t t = recv(i3_sock, recv_buf, 4096, 0);
-	if(t == -1) {
-		perror("recv");
-		recv_buf[0] = '\0';
+	//first read the header
+	char *recv_buf = malloc(I3_HEADER_LENGTH + 1);
+	uint32_t recv = 0;
+	while(recv < I3_HEADER_LENGTH) {
+		ssize_t r = read(i3_sock, recv_buf + recv, I3_HEADER_LENGTH - recv);
+		if(r == -1) {
+			perror("recv");
+			exit(1);
+		}
+		if(r == 0) {
+			fprintf(stderr, "%seof from i3, quitting...\n", BAD_MSG);
+			exit(1);
+		}
+		recv += r;
 	}
-	else recv_buf[t] = '\0';
+	*((char *)(recv_buf + recv)) = '\0';
+
+	//make sure this message is well formatted
+	if(strncmp("i3-ipc", recv_buf, 6) != 0) {
+		fprintf(stderr, "%sbad ipc message from i3:%s\n", BAD_MSG, recv_buf);
+		exit(1);
+	}
+
+	//then we check the message length
+	uint32_t msg_len = *((uint32_t *)(recv_buf + 6));
+
+	recv_buf = realloc(recv_buf, recv + 1 + msg_len);
+
+	uint32_t total = I3_HEADER_LENGTH + msg_len;
+	while(recv < total) {
+		ssize_t r = read(i3_sock, recv_buf + recv, total - recv);
+		if(r == -1) {
+			perror("recv");
+			exit(1);
+		}
+		if(r == 0) {
+			fprintf(stderr, "%seof from i3, quitting...\n", BAD_MSG);
+			exit(1);
+		}
+		recv += r;
+	}
+	*((char *)(recv_buf + recv)) = '\0';
+
 	*ret = recv_buf + 14; //skip over the header
 }
 

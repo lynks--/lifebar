@@ -266,6 +266,7 @@ int main(int argc, char **argv) {
 			struct instance *ins = malloc(sizeof *ins);
 			ins->next = instance_list;
 			ins->output = output_list;
+			ins->ws_layout = malloc(sizeof ins->ws_layout);
 			instance_list = ins;
 
 			//create the window
@@ -407,6 +408,12 @@ int main(int argc, char **argv) {
 		cairo_text_extents(instance_list->cairo, "ABCDEFG", &extents);
 		textheight = conf->depth - ((conf->depth - extents.height) / 2);
 
+		//detect acpi power sources
+		int batt_count = count_acpi_batteries();
+		struct batt_info *batteries[batt_count];
+		for(i = 0; i < batt_count; i++)
+			batteries[i] = malloc(sizeof batteries[i]);
+
 	// ========= start the main loop =========
 
 		int run = 1;
@@ -500,6 +507,12 @@ int main(int argc, char **argv) {
 					fstwo_free = (unsigned long long)fs.f_bsize * fs.f_bavail;
 				}
 
+				//read battery information
+				for(i = 0; i < batt_count; i++)
+					read_acpi_battery(i, batteries[i]);
+
+				//TODO read thermal information
+
 			// ========= iterate over each instance, drawing it =========
 
 				struct instance *ins = instance_list;
@@ -509,10 +522,27 @@ int main(int argc, char **argv) {
 
 						if(mouse_clicked) {
 							//check if this instance has been clicked on
-							/*
 							if(mouse_x > ins->output->x &&
-							   mouse_x < (ins->output->x + ins->output->width)
-							*/
+							   mouse_x <
+									(ins->output->x + ins->output->width)) {
+								for(i = 0; i < MAX_WORKSPACES; i++) {
+									if(ins->ws_layout->wsp[i] == NULL)
+										break;
+									if(mouse_x <
+												ins->output->x +
+												ins->ws_layout->x_max[i]) {
+										char i3_payload[256];
+										sprintf(i3_payload,
+												"workspace %s", 
+												ins->ws_layout->wsp[i]->name);
+										char *res;
+										i3_ipc_send(&res, i3_sock, COMMAND,
+													i3_payload);
+										free_ipc_result(res);
+										break;
+									}
+								}
+							}
 						}
 
 					// ========= draw the background =========
@@ -533,25 +563,45 @@ int main(int argc, char **argv) {
 
 						//workspaces
 						ws_head = workspaces_list;
+						int ws_index = 0;
 						while(ws_head != NULL) {
 							//is this workspace on my output?
 							if(strcmp(ws_head->output,
 									  ins->output->name) == 0) {
-								//is this workspace currently visible?
+
+								//set colour based on visibility
 								struct colour *c = conf->inviswscol;
 								if(strcmp(ws_head->visible, "true") == 0)
 									c = conf->viswscol;
 								set_cairo_source_colour(ins->cairo, c);
+
+								//draw the text
+								cairo_text_extents(ins->cairo, ws_head->name,
+												   &extents);
 								cairo_move_to(ins->cairo,
 											  tlpadding, textheight);
 								cairo_show_text(ins->cairo,
 												ws_head->name);
-								tlpadding += 10; //todo string width
+
+								//update the padding
+								tlpadding += extents.width + 2;
+
+								//store this x max for future click events
+								ins->ws_layout->wsp[ws_index] = ws_head;
+								ins->ws_layout->x_max[ws_index] =
+									tlpadding + conf->divpadding + 1;
+
+								//divider
 								tlpadding += render_divider(ins->cairo,
 															tlpadding, LEFT);
+
+								ws_index++;
 							}
 							ws_head = ws_head->next;
 						}
+
+						//cap the workspace layout for this frame
+						ins->ws_layout->wsp[ws_index] = NULL;
 
 					// ========= right side =========
 
@@ -592,7 +642,7 @@ int main(int argc, char **argv) {
 							char ifone_string[256];
 							ifone_string[0] = '\0';
 
-							//if this interface is up TODO see IFF_RUNNING
+							//if this interface is up
 							if(ifone->ifa_flags & IFF_UP) {
 								//if this is an ipv4 or ipv6 address
 								if((ifone->ifa_addr->sa_family == AF_INET) ||
@@ -606,10 +656,8 @@ int main(int argc, char **argv) {
 									sprintf(ifone_string, "%s  %s", conf->ifone,
 											readable_addr);
 								}
-								else sprintf(ifone_string,
-											 "%s  unknown address family %d",
-											 conf->ifone,
-											 ifone->ifa_addr->sa_family);
+								else sprintf(ifone_string, "%s  down",
+											 conf->ifone);
 							}
 							else sprintf(ifone_string, "%s  down",
 										conf->ifone);
@@ -636,7 +684,7 @@ int main(int argc, char **argv) {
 							char iftwo_string[256];
 							iftwo_string[0] = '\0';
 
-							//if this interface is up TODO see IFF_RUNNING
+							//if this interface is up
 							if(iftwo->ifa_flags & IFF_UP) {
 								//if this is an ipv4 or ipv6 address
 								if((iftwo->ifa_addr->sa_family == AF_INET) ||
@@ -650,10 +698,8 @@ int main(int argc, char **argv) {
 									sprintf(iftwo_string, "%s  %s", conf->iftwo,
 											readable_addr);
 								}
-								else sprintf(iftwo_string,
-											 "%s  unknown address family %d",
-											 conf->iftwo,
-											 iftwo->ifa_addr->sa_family);
+								else sprintf(iftwo_string, "%s  down",
+											 conf->iftwo);
 							}
 							else sprintf(iftwo_string, "%s  down",
 										conf->iftwo);
@@ -712,6 +758,47 @@ int main(int argc, char **argv) {
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);
 						}
+
+						//battery information
+						/*
+						for(i = 0; i < acpi_batt_count; i++) {
+							//convert status to string
+							char status[64];
+							switch(batt_info[i]->battery_status) {
+								case BATTERY_STATUS_CHARGING:
+									if(batt_info[i]->battery_flags |
+													BATTERY_FLAGS_CHARGING)
+										sprintf(status, "%s", "Charging");
+									else 
+										sprintf(status, "%s", "Discharging");
+									break;
+								case BATTERY_STATUS_HIGH:
+									sprintf(status, "%s", "Full");
+									break;
+								default:
+									sprintf(status, "%s", "UNKNOWN");
+							}
+
+							char batt_str[128];
+							sprintf(batt_str, "Battery %d: %2d%% %s %d",
+									i,
+									batt_info[i]->battery_percentage,
+									status,
+									batt_info[i]->battery_time);
+
+							set_cairo_source_colour(ins->cairo, conf->keycol);
+							cairo_text_extents(ins->cairo, batt_str, &extents);
+							cairo_move_to(ins->cairo, ins->output->width -
+										  (extents.width + trpadding),
+										  textheight);
+							cairo_show_text(ins->cairo, batt_str);
+							trpadding += extents.width - 1;
+
+							//divider
+							trpadding += render_divider(ins->cairo,
+									ins->output->width - trpadding, RIGHT);
+						}
+						*/
 
 					// ========= finish this frame =========
 

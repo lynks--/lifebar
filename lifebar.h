@@ -15,6 +15,9 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * acpi.c is based heavily on the work of joey@kitenet.net
+ *
 */
 
 #include <X11/Xlib.h>
@@ -34,6 +37,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <string.h>
 #include <unistd.h>
 #include <ifaddrs.h>
@@ -47,6 +51,9 @@
 #define GET_MASKS 5
 #define GET_BAR_CONFIG 6
 #define GET_VERSION 7
+
+//i3 header length
+#define I3_HEADER_LENGTH 14
 
 //config.position options
 #define TOP 0
@@ -63,6 +70,21 @@
 //output message types
 #define BAD_MSG "[ \x1b[31m:(\x1b[0m ] "
 #define GOOD_MSG "[ \x1b[92m:)\x1b[0m ] "
+
+//battery state
+#define CHARGING 0
+#define DISCHARGING 1
+#define FULL 2
+#define EMPTY 3
+
+//max workspaces tracked for click events
+#define MAX_WORKSPACES 128
+
+struct batt_info {
+	uint32_t percent;				//how full the battery is 0-100 inc
+	uint32_t state;					//CHARGING DISCHARGING FULL EMPTY
+	uint32_t time;					//how long until FULL/EMPTY in seconds
+};
 
 struct i3_output {
 	char name[16];
@@ -83,6 +105,11 @@ struct i3_workspace {
 	struct i3_workspace *next;
 };
 
+struct ws_layout {
+	struct i3_workspace *wsp[MAX_WORKSPACES];
+	uint32_t x_max[MAX_WORKSPACES];
+};
+
 struct instance {
 	Window w;
 	XImage *bg;						//background
@@ -90,7 +117,8 @@ struct instance {
 	cairo_surface_t *cairo_s_bb;	//cairo surface for the backbuffer
 	cairo_t *cairo;					//cairo context for the backbuffer
 	GC gc;							//graphics context
-	struct i3_output *output;
+	struct i3_output *output;		//output info for this instance
+	struct ws_layout *ws_layout;	//store positions of ws dividers for clicks
 	struct instance *next;
 };
 
@@ -155,3 +183,7 @@ struct i3_workspace *get_i3_workspaces();
 void get_i3_sockpath(char **);
 
 struct colour *parse_config_colour(char *);
+
+int count_acpi_batteries();
+
+void read_acpi_battery(int, struct batt_info *);
