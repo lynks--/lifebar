@@ -534,10 +534,13 @@ int main(int argc, char **argv) {
 										sprintf(i3_payload,
 												"workspace %s", 
 												ins->ws_layout->wsp[i]->name);
+										printf("%s\n", i3_payload);
+										/*
 										char *res;
 										i3_ipc_send(&res, i3_sock, COMMAND,
 													i3_payload);
 										free_ipc_result(res);
+										*/
 										break;
 									}
 								}
