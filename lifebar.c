@@ -475,7 +475,6 @@ int main(int argc, char **argv) {
 				//NOTE: this is freed after the instance loop
 				struct i3_workspace *workspaces_list =
 					get_i3_workspaces(i3_sock);
-				struct i3_workspace *ws_head;
 
 				//check the event buffer for incoming events
 				int mouse_clicked = 0;
@@ -562,7 +561,7 @@ int main(int argc, char **argv) {
 						uint32_t tlpadding = conf->lpadding;
 
 						//workspaces
-						ws_head = workspaces_list;
+						struct i3_workspace *ws_head = workspaces_list;
 						int ws_index = 0;
 						while(ws_head != NULL) {
 							//is this workspace on my output?
@@ -590,12 +589,12 @@ int main(int argc, char **argv) {
 								ins->ws_layout->wsp[ws_index] = ws_head;
 								ins->ws_layout->x_max[ws_index] =
 									tlpadding + conf->divpadding + 1;
+								ws_index++;
 
 								//divider
 								tlpadding += render_divider(ins->cairo,
 															tlpadding, LEFT);
 
-								ws_index++;
 							}
 							ws_head = ws_head->next;
 						}
