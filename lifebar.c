@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 		sprintf(confpath, "%s/.lifebarrc", getenv("HOME"));
 		FILE *cf = fopen(confpath, "r");
 		if(cf != NULL) {
-			printf("%susing config file '~/.lifebarrc'\n", GOOD_MSG);
+			printf("%susing config file: '~/.lifebarrc'\n", GOOD_MSG);
 			char line[1024];
 			char key[128];
 			char value[1024];
@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 		else {
 			//in the absence of a config file we use defaults
 			fprintf(stderr,
-					"%sno config file '~/.lifebarrc' found, using default\n",
+					"%sno config file '~/.lifebarrc' found, using defaults\n",
 				   BAD_MSG);
 		}
 
@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
 		//learn the i3wm ipc socket path
 		char *i3_sockpath;
 		get_i3_sockpath(&i3_sockpath);
-		printf("%si3 ipc socket: %s\n", GOOD_MSG, i3_sockpath);
+		printf("%susing i3 ipc socket: %s\n", GOOD_MSG, i3_sockpath);
 
 		//use the socket path to create a unix sockaddr struct
 		struct sockaddr_un i3_sockaddr;
