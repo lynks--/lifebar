@@ -494,19 +494,10 @@ int main(int argc, char **argv) {
 				}
 
 				//lookup hdd capacity information
-				struct statvfs fs;
-				unsigned long long fsone_cap = 0;
-				unsigned long long fsone_free = 0;
-				unsigned long long fstwo_cap = 0;
-				unsigned long long fstwo_free = 0;
-				if(statvfs(conf->fsone, &fs) != -1) {
-					fsone_cap = (unsigned long long)fs.f_bsize * fs.f_blocks;
-					fsone_free = (unsigned long long)fs.f_bsize * fs.f_bavail;
-				}
-				if(statvfs(conf->fstwo, &fs) != -1) {
-					fstwo_cap = (unsigned long long)fs.f_bsize * fs.f_blocks;
-					fstwo_free = (unsigned long long)fs.f_bsize * fs.f_bavail;
-				}
+				struct statvfs fsone;
+				struct statvfs fstwo;
+				int fsone_alive = statvfs(conf->fsone, &fsone);
+				int fstwo_alive = statvfs(conf->fstwo, &fstwo);
 
 				//read battery information
 				for(i = 0; i < batt_count; i++)
@@ -567,25 +558,11 @@ int main(int argc, char **argv) {
 						int ws_index = 0;
 						while(ws_head != NULL) {
 							//is this workspace on my output?
-							if(strcmp(ws_head->output,
-									  ins->output->name) == 0) {
-
-								//set colour based on visibility
-								struct colour *c = conf->inviswscol;
-								if(strcmp(ws_head->visible, "true") == 0)
-									c = conf->viswscol;
-								set_cairo_source_colour(ins->cairo, c);
-
+							if(!strcmp(ws_head->output, ins->output->name)) {
 								//draw the text
-								cairo_text_extents(ins->cairo, ws_head->name,
-												   &extents);
-								cairo_move_to(ins->cairo,
-											  tlpadding, textheight);
-								cairo_show_text(ins->cairo,
-												ws_head->name);
-
-								//update the padding
-								tlpadding += extents.width + 2;
+								tlpadding +=
+									render_workspace(ins->cairo, tlpadding,
+													textheight, ws_head, LEFT);
 
 								//store this x max for future click events
 								strcpy(ins->ws_layout->ws_name[ws_index],
@@ -597,11 +574,9 @@ int main(int argc, char **argv) {
 								//divider
 								tlpadding += render_divider(ins->cairo,
 															tlpadding, LEFT);
-
 							}
 							ws_head = ws_head->next;
 						}
-
 						//cap the workspace layout for this frame
 						ins->ws_layout->ws_name[ws_index][0] = '\0';
 
@@ -610,152 +585,60 @@ int main(int argc, char **argv) {
 						uint32_t trpadding = conf->rpadding;
 
 						//time
-						time_t rawnow = time(NULL);
-						struct tm *now = localtime(&rawnow);
-						char time_string[128];
-						strftime(time_string, 128, conf->timefmt, now);
-						set_cairo_source_colour(ins->cairo, conf->keycol);
-						cairo_text_extents(ins->cairo, time_string, &extents);
-						cairo_move_to(ins->cairo, ins->output->width -
-									  (extents.width + trpadding), textheight);
-						cairo_show_text(ins->cairo, time_string);
-						trpadding += extents.width - 1;
+						trpadding += render_time(ins->cairo,
+										ins->output->width - trpadding,
+										textheight, RIGHT);
 
 						//divider
 						trpadding += render_divider(ins->cairo,
 										ins->output->width - trpadding, RIGHT);
 
 						//date
-						char date_string[256];
-						strftime(date_string, 256, conf->datefmt, now);
-						set_cairo_source_colour(ins->cairo, conf->keycol);
-						cairo_text_extents(ins->cairo, date_string, &extents);
-						cairo_move_to(ins->cairo, ins->output->width -
-									  (extents.width + trpadding), textheight);
-						cairo_show_text(ins->cairo, date_string);
-						trpadding += extents.width - 1;
+						trpadding += render_date(ins->cairo,
+										ins->output->width - trpadding,
+										textheight, RIGHT);
 
 						//divider
 						trpadding += render_divider(ins->cairo,
 										ins->output->width - trpadding, RIGHT);
 
 						//ifone
-						if(ifone != NULL) {
-							char ifone_string[256];
-							ifone_string[0] = '\0';
+						if(strlen(conf->ifone) > 0) {
+							trpadding += render_interface(ins->cairo,
+											ins->output->width - trpadding,
+											textheight, ifone, RIGHT);
 
-							//if this interface is up
-							if(ifone->ifa_flags & IFF_UP) {
-								//if this is an ipv4 or ipv6 address
-								if((ifone->ifa_addr->sa_family == AF_INET) ||
-								   (ifone->ifa_addr->sa_family == AF_INET6)) {
-									struct sockaddr_in *addr =
-										(struct sockaddr_in *)ifone->ifa_addr;
-									char readable_addr[256];
-									inet_ntop(addr->sin_family, &(addr->sin_addr),
-											  readable_addr, 256);
-								
-									sprintf(ifone_string, "%s  %s", conf->ifone,
-											readable_addr);
-								}
-								else sprintf(ifone_string, "%s  down",
-											 conf->ifone);
-							}
-							else sprintf(ifone_string, "%s  down",
-										conf->ifone);
-
-							if(strlen(ifone_string) > 0) {
-								set_cairo_source_colour(ins->cairo,
-														conf->keycol);
-								cairo_text_extents(ins->cairo, ifone_string,
-												   &extents);
-								cairo_move_to(ins->cairo, ins->output->width -
-											  (extents.width + trpadding),
-											  textheight);
-								cairo_show_text(ins->cairo, ifone_string);
-								trpadding += extents.width - 1;
-
-								//divider
-								trpadding += render_divider(ins->cairo,
+							//divider
+							trpadding += render_divider(ins->cairo,
 										ins->output->width - trpadding, RIGHT);
-							}
 						}
 
 						//iftwo
-						if(iftwo != NULL) {
-							char iftwo_string[256];
-							iftwo_string[0] = '\0';
+						if(strlen(conf->iftwo) > 0) {
+							trpadding += render_interface(ins->cairo,
+											ins->output->width - trpadding,
+											textheight, iftwo, RIGHT);
 
-							//if this interface is up
-							if(iftwo->ifa_flags & IFF_UP) {
-								//if this is an ipv4 or ipv6 address
-								if((iftwo->ifa_addr->sa_family == AF_INET) ||
-								   (iftwo->ifa_addr->sa_family == AF_INET6)) {
-									struct sockaddr_in *addr =
-										(struct sockaddr_in *)iftwo->ifa_addr;
-									char readable_addr[256];
-									inet_ntop(addr->sin_family, &(addr->sin_addr),
-											  readable_addr, 256);
-
-									sprintf(iftwo_string, "%s  %s", conf->iftwo,
-											readable_addr);
-								}
-								else sprintf(iftwo_string, "%s  down",
-											 conf->iftwo);
-							}
-							else sprintf(iftwo_string, "%s  down",
-										conf->iftwo);
-
-							if(strlen(iftwo_string) > 0) {
-								set_cairo_source_colour(ins->cairo,
-														conf->keycol);
-								cairo_text_extents(ins->cairo, iftwo_string,
-												   &extents);
-								cairo_move_to(ins->cairo, ins->output->width -
-											  (extents.width + trpadding),
-											  textheight);
-								cairo_show_text(ins->cairo, iftwo_string);
-								trpadding += extents.width - 1;
-
-								//divider
-								trpadding += render_divider(ins->cairo,
+							//divider
+							trpadding += render_divider(ins->cairo,
 										ins->output->width - trpadding, RIGHT);
-							}
 						}
 
 						//fsone
-						if(fsone_cap) {
-							char str[64];
-							sprintf(str, "%s  %.1fGiB", conf->fsone,
-									(double)fsone_free / (1024 * 1024 * 1024));
-
-							set_cairo_source_colour(ins->cairo, conf->keycol);
-							cairo_text_extents(ins->cairo, str, &extents);
-							cairo_move_to(ins->cairo, ins->output->width -
-										  (extents.width + trpadding),
-										  textheight);
-							cairo_show_text(ins->cairo, str);
-							trpadding += extents.width - 1;
-
+						if(fsone_alive == 0) {
+							trpadding += render_filesystem(ins->cairo,
+									ins->output->width - trpadding,
+									textheight, &fsone, RIGHT);
 							//divider
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);
 						}
 
 						//fstwo
-						if(fstwo_cap) {
-							char str[64];
-							sprintf(str, "%s  %.1fGiB", conf->fstwo,
-									(double)fstwo_free / (1024 * 1024 * 1024));
-
-							set_cairo_source_colour(ins->cairo, conf->keycol);
-							cairo_text_extents(ins->cairo, str, &extents);
-							cairo_move_to(ins->cairo, ins->output->width -
-										  (extents.width + trpadding),
-										  textheight);
-							cairo_show_text(ins->cairo, str);
-							trpadding += extents.width - 1;
-
+						if(fstwo_alive == 0) {
+							trpadding += render_filesystem(ins->cairo,
+									ins->output->width - trpadding,
+									textheight, &fstwo, RIGHT);
 							//divider
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);
