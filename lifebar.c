@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 		sprintf(confpath, "%s/.lifebarrc", getenv("HOME"));
 		FILE *cf = fopen(confpath, "r");
 		if(cf != NULL) {
-			printf("%susing config file '~/.lifebarrc'\n", GOOD_MSG);
+			printf("%susing config file: '~/.lifebarrc'\n", GOOD_MSG);
 			char line[1024];
 			char key[128];
 			char value[1024];
@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 		else {
 			//in the absence of a config file we use defaults
 			fprintf(stderr,
-					"%sno config file '~/.lifebarrc' found, using default\n",
+					"%sno config file '~/.lifebarrc' found, using defaults\n",
 				   BAD_MSG);
 		}
 
@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
 		//learn the i3wm ipc socket path
 		char *i3_sockpath;
 		get_i3_sockpath(&i3_sockpath);
-		printf("%si3 ipc socket: %s\n", GOOD_MSG, i3_sockpath);
+		printf("%susing i3 ipc socket: %s\n", GOOD_MSG, i3_sockpath);
 
 		//use the socket path to create a unix sockaddr struct
 		struct sockaddr_un i3_sockaddr;
@@ -266,7 +266,9 @@ int main(int argc, char **argv) {
 			struct instance *ins = malloc(sizeof *ins);
 			ins->next = instance_list;
 			ins->output = output_list;
-			ins->ws_layout = malloc(sizeof ins->ws_layout);
+			ins->ws_layout = malloc(sizeof *ins->ws_layout);
+			for(i = 0; i < MAX_WORKSPACES; i++)
+				ins->ws_layout->ws_name[i][0] = '\0';
 			instance_list = ins;
 
 			//create the window
@@ -475,7 +477,6 @@ int main(int argc, char **argv) {
 				//NOTE: this is freed after the instance loop
 				struct i3_workspace *workspaces_list =
 					get_i3_workspaces(i3_sock);
-				struct i3_workspace *ws_head;
 
 				//check the event buffer for incoming events
 				int mouse_clicked = 0;
@@ -526,7 +527,7 @@ int main(int argc, char **argv) {
 							   mouse_x <
 									(ins->output->x + ins->output->width)) {
 								for(i = 0; i < MAX_WORKSPACES; i++) {
-									if(ins->ws_layout->wsp[i] == NULL)
+									if(!strlen(ins->ws_layout->ws_name[i]))
 										break;
 									if(mouse_x <
 												ins->output->x +
@@ -534,7 +535,7 @@ int main(int argc, char **argv) {
 										char i3_payload[256];
 										sprintf(i3_payload,
 												"workspace %s", 
-												ins->ws_layout->wsp[i]->name);
+												ins->ws_layout->ws_name[i]);
 										char *res;
 										i3_ipc_send(&res, i3_sock, COMMAND,
 													i3_payload);
@@ -562,7 +563,7 @@ int main(int argc, char **argv) {
 						uint32_t tlpadding = conf->lpadding;
 
 						//workspaces
-						ws_head = workspaces_list;
+						struct i3_workspace *ws_head = workspaces_list;
 						int ws_index = 0;
 						while(ws_head != NULL) {
 							//is this workspace on my output?
@@ -587,21 +588,22 @@ int main(int argc, char **argv) {
 								tlpadding += extents.width + 2;
 
 								//store this x max for future click events
-								ins->ws_layout->wsp[ws_index] = ws_head;
+								strcpy(ins->ws_layout->ws_name[ws_index],
+									   ws_head->name);
 								ins->ws_layout->x_max[ws_index] =
 									tlpadding + conf->divpadding + 1;
+								ws_index++;
 
 								//divider
 								tlpadding += render_divider(ins->cairo,
 															tlpadding, LEFT);
 
-								ws_index++;
 							}
 							ws_head = ws_head->next;
 						}
 
 						//cap the workspace layout for this frame
-						ins->ws_layout->wsp[ws_index] = NULL;
+						ins->ws_layout->ws_name[ws_index][0] = '\0';
 
 					// ========= right side =========
 

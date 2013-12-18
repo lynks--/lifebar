@@ -79,6 +79,7 @@
 
 //max workspaces tracked for click events
 #define MAX_WORKSPACES 128
+#define MAX_WS_NAME_LENGTH 64
 
 struct batt_info {
 	uint32_t percent;				//how full the battery is 0-100 inc
@@ -106,7 +107,7 @@ struct i3_workspace {
 };
 
 struct ws_layout {
-	struct i3_workspace *wsp[MAX_WORKSPACES];
+	char ws_name[MAX_WORKSPACES][MAX_WS_NAME_LENGTH];
 	uint32_t x_max[MAX_WORKSPACES];
 };
 
