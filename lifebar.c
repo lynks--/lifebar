@@ -266,7 +266,9 @@ int main(int argc, char **argv) {
 			struct instance *ins = malloc(sizeof *ins);
 			ins->next = instance_list;
 			ins->output = output_list;
-			ins->ws_layout = malloc(sizeof ins->ws_layout);
+			ins->ws_layout = malloc(sizeof *ins->ws_layout);
+			for(i = 0; i < MAX_WORKSPACES; i++)
+				ins->ws_layout->ws_name[i][0] = '\0';
 			instance_list = ins;
 
 			//create the window
@@ -525,7 +527,7 @@ int main(int argc, char **argv) {
 							   mouse_x <
 									(ins->output->x + ins->output->width)) {
 								for(i = 0; i < MAX_WORKSPACES; i++) {
-									if(ins->ws_layout->wsp[i] == NULL)
+									if(!strlen(ins->ws_layout->ws_name[i]))
 										break;
 									if(mouse_x <
 												ins->output->x +
@@ -533,14 +535,11 @@ int main(int argc, char **argv) {
 										char i3_payload[256];
 										sprintf(i3_payload,
 												"workspace %s", 
-												ins->ws_layout->wsp[i]->name);
-										printf("%s\n", i3_payload);
-										/*
+												ins->ws_layout->ws_name[i]);
 										char *res;
 										i3_ipc_send(&res, i3_sock, COMMAND,
 													i3_payload);
 										free_ipc_result(res);
-										*/
 										break;
 									}
 								}
@@ -589,7 +588,8 @@ int main(int argc, char **argv) {
 								tlpadding += extents.width + 2;
 
 								//store this x max for future click events
-								ins->ws_layout->wsp[ws_index] = ws_head;
+								strcpy(ins->ws_layout->ws_name[ws_index],
+									   ws_head->name);
 								ins->ws_layout->x_max[ws_index] =
 									tlpadding + conf->divpadding + 1;
 								ws_index++;
@@ -603,7 +603,7 @@ int main(int argc, char **argv) {
 						}
 
 						//cap the workspace layout for this frame
-						ins->ws_layout->wsp[ws_index] = NULL;
+						ins->ws_layout->ws_name[ws_index][0] = '\0';
 
 					// ========= right side =========
 
