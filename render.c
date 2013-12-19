@@ -83,7 +83,7 @@ int render_interface(cairo_t *cairo, int x, int y, struct ifaddrs *a, int d) {
 }
 
 int render_filesystem(cairo_t *cairo, int x, int y,
-					  struct statvfs *fs, int d) {
+					  struct statvfs *fs, char *path, int d) {
 
 	unsigned long long fs_cap =
 		(unsigned long long)fs->f_bsize * fs->f_blocks;
@@ -92,7 +92,7 @@ int render_filesystem(cairo_t *cairo, int x, int y,
 
 	char str[64];
 	int giga = 1024 * 1024 * 1024;
-	sprintf(str, "%s %.1fGiB", conf->fsone, (double)fs_free / giga);
+	sprintf(str, "%s %.1fGiB", path, (double)fs_free / giga);
 
 	set_cairo_source_colour(cairo, conf->keycol);
 	cairo_text_extents_t extents;

@@ -628,7 +628,7 @@ int main(int argc, char **argv) {
 						if(fsone_alive == 0) {
 							trpadding += render_filesystem(ins->cairo,
 									ins->output->width - trpadding,
-									textheight, &fsone, RIGHT);
+									textheight, &fsone, conf->fsone, RIGHT);
 							//divider
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);
@@ -638,7 +638,7 @@ int main(int argc, char **argv) {
 						if(fstwo_alive == 0) {
 							trpadding += render_filesystem(ins->cairo,
 									ins->output->width - trpadding,
-									textheight, &fstwo, RIGHT);
+									textheight, &fstwo, conf->fstwo, RIGHT);
 							//divider
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);

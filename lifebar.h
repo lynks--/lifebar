@@ -197,4 +197,4 @@ int render_date(cairo_t *, int, int, int);
 
 int render_interface(cairo_t *, int, int, struct ifaddrs *, int);
 
-int render_filesystem(cairo_t *, int, int, struct statvfs *, int);
+int render_filesystem(cairo_t *, int, int, struct statvfs *, char *, int);
