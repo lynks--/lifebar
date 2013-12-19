@@ -76,14 +76,16 @@
 #define DISCHARGING 1
 #define FULL 2
 #define EMPTY 3
+#define UNKNOWN 4
 
 //max workspaces tracked for click events
 #define MAX_WORKSPACES 128
 #define MAX_WS_NAME_LENGTH 64
 
 struct batt_info {
+	uint32_t index;					//battery number, as in BAT0
 	uint32_t percent;				//how full the battery is 0-100 inc
-	uint32_t state;					//CHARGING DISCHARGING FULL EMPTY
+	uint32_t status;				//CHARGING DISCHARGING FULL EMPTY
 	uint32_t time;					//how long until FULL/EMPTY in seconds
 };
 

@@ -128,6 +128,42 @@ int render_workspace(cairo_t *cairo, int x, int y,
 	return extents.width + 2;
 }
 
+int render_battery(cairo_t *cairo, int x, int y,
+					 struct batt_info *batt, int d) {
+
+	char batt_string[64];
+
+	switch(batt->status) {
+		case CHARGING:
+			sprintf(batt_string, "batt%d charging %d%%",
+					batt->index, batt->percent);
+			break;
+		case DISCHARGING:
+			sprintf(batt_string, "batt%d discharging %d%%",
+					batt->index, batt->percent);
+			break;
+		case FULL:
+			sprintf(batt_string, "batt%d full", batt->index);
+			break;
+		case UNKNOWN:
+			sprintf(batt_string, "batt%d status unknown", batt->index);
+	}
+
+	cairo_text_extents_t extents;
+	cairo_text_extents(cairo, batt_string, &extents);
+
+	int render_x = x;
+	if(d == RIGHT) render_x = x - extents.width;
+
+	//draw the text
+	set_cairo_source_colour(cairo, conf->keycol);
+	cairo_move_to(cairo, render_x, y);
+	cairo_show_text(cairo, batt_string);
+
+	//update the padding
+	return extents.width + 2;
+}
+
 int render_time(cairo_t *cairo, int x, int y, int d) {
 	time_t rawnow = time(NULL);
 	struct tm *now = localtime(&rawnow);

@@ -414,7 +414,7 @@ int main(int argc, char **argv) {
 		int batt_count = count_acpi_batteries();
 		struct batt_info *batteries[batt_count];
 		for(i = 0; i < batt_count; i++)
-			batteries[i] = malloc(sizeof batteries[i]);
+			batteries[i] = malloc(sizeof *batteries[i]);
 
 	// ========= start the main loop =========
 
@@ -644,46 +644,15 @@ int main(int argc, char **argv) {
 									ins->output->width - trpadding, RIGHT);
 						}
 
-						//battery information
-						/*
-						for(i = 0; i < acpi_batt_count; i++) {
-							//convert status to string
-							char status[64];
-							switch(batt_info[i]->battery_status) {
-								case BATTERY_STATUS_CHARGING:
-									if(batt_info[i]->battery_flags |
-													BATTERY_FLAGS_CHARGING)
-										sprintf(status, "%s", "Charging");
-									else 
-										sprintf(status, "%s", "Discharging");
-									break;
-								case BATTERY_STATUS_HIGH:
-									sprintf(status, "%s", "Full");
-									break;
-								default:
-									sprintf(status, "%s", "UNKNOWN");
-							}
-
-							char batt_str[128];
-							sprintf(batt_str, "Battery %d: %2d%% %s %d",
-									i,
-									batt_info[i]->battery_percentage,
-									status,
-									batt_info[i]->battery_time);
-
-							set_cairo_source_colour(ins->cairo, conf->keycol);
-							cairo_text_extents(ins->cairo, batt_str, &extents);
-							cairo_move_to(ins->cairo, ins->output->width -
-										  (extents.width + trpadding),
-										  textheight);
-							cairo_show_text(ins->cairo, batt_str);
-							trpadding += extents.width - 1;
-
+						//batteries
+						for(i = 0; i < batt_count; i++) {
+							trpadding += render_battery(ins->cairo,
+									ins->output->width - trpadding,
+									textheight, batteries[i], RIGHT);
 							//divider
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);
 						}
-						*/
 
 					// ========= finish this frame =========
 

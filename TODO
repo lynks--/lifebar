@@ -1,20 +1,13 @@
 key/value colours
 key/value padding
+time colour
+date colour
+good and bad colours
+good and bad thresholds (battery, signal strength)
 
 tray icons
 
-time colour
-date colour
-
-good and bad colours
-
-good and bad thresholds (battery, signal strength)
-
-workspace text extents
-
 font selection
-
-mouse over workspaces
 
 alarm system
 mouse over time (set alarm)
@@ -32,7 +25,6 @@ modules:
 	cpu usage
 	ram usage
 	wifi signal strength
-	acpi/battery
 	alsa volumes
 	vpn status
 	arp cache watch
