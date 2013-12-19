@@ -159,8 +159,6 @@ struct config {
 
 extern struct config *conf;
 
-int render_divider(cairo_t *, int, int);
-
 struct colour *prepare_colour(int, int, int, int);
 
 void set_cairo_source_colour(cairo_t *, struct colour*);
@@ -188,3 +186,15 @@ struct colour *parse_config_colour(char *);
 int count_acpi_batteries();
 
 void read_acpi_battery(int, struct batt_info *);
+
+int render_divider(cairo_t *, int, int);
+
+int render_workspace(cairo_t *, int, int, struct i3_workspace *, int);
+
+int render_time(cairo_t *, int, int, int);
+
+int render_date(cairo_t *, int, int, int);
+
+int render_interface(cairo_t *, int, int, struct ifaddrs *, int);
+
+int render_filesystem(cairo_t *, int, int, struct statvfs *, char *, int);
