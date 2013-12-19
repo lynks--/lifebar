@@ -3,7 +3,7 @@ key/value padding
 time colour
 date colour
 good and bad colours
-good and bad thresholds (battery, signal strength)
+good and bad thresholds (battery, signal strength, temperature)
 
 tray icons
 
@@ -28,4 +28,5 @@ modules:
 	alsa volumes
 	vpn status
 	arp cache watch
-
+	mailbox
+	weather

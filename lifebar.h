@@ -89,6 +89,11 @@ struct batt_info {
 	uint32_t time;					//how long until FULL/EMPTY in seconds
 };
 
+struct thermal_info {
+	uint32_t index;					//thermal zone index
+	uint32_t temp_c;				//temp in c
+};
+
 struct i3_output {
 	char name[16];
 	char active[16];
@@ -189,6 +194,10 @@ int count_acpi_batteries();
 
 void read_acpi_battery(int, struct batt_info *);
 
+int count_acpi_thermal();
+
+void read_acpi_thermal(int, struct thermal_info *);
+
 int render_divider(cairo_t *, int, int);
 
 int render_workspace(cairo_t *, int, int, struct i3_workspace *, int);
@@ -200,3 +209,7 @@ int render_date(cairo_t *, int, int, int);
 int render_interface(cairo_t *, int, int, struct ifaddrs *, int);
 
 int render_filesystem(cairo_t *, int, int, struct statvfs *, char *, int);
+
+int render_battery(cairo_t *, int, int, struct batt_info *, int);
+
+int render_thermal(cairo_t *, int, int, struct thermal_info *, int);

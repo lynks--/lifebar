@@ -1,6 +1,7 @@
 #include "lifebar.h"
 
 #define PS_PATH "/sys/class/power_supply"
+#define TH_PATH "/sys/class/thermal"
 
 int count_acpi_batteries() {
 	DIR *d;
@@ -12,6 +13,24 @@ int count_acpi_batteries() {
 	while((de = readdir(d)) != NULL) {
 		if(strstr(de->d_name, "BAT") == de->d_name) {
 			//name starts with BAT
+			count++;
+		}
+	}
+	closedir(d);
+
+	return count;
+}
+
+int count_acpi_thermal() {
+	DIR *d;
+	struct dirent *de;
+	int count = 0;
+
+	d = opendir(TH_PATH);
+	if(d == NULL) return 0;
+	while((de = readdir(d)) != NULL) {
+		if(strstr(de->d_name, "thermal") == de->d_name) {
+			//name starts with thermal
 			count++;
 		}
 	}
@@ -72,4 +91,27 @@ void read_acpi_battery(int b, struct batt_info *bi) {
 	fclose(f);
 
 	bi->percent = (int)(energy_now * 100 / (double)energy_full);
+}
+
+void read_acpi_thermal(int t, struct thermal_info *therm) {
+	//save the index 
+	therm->index = t;
+
+	//we assume the thermal index to exist as filename thermal_zone<index>
+	char path[128];
+	FILE *f;
+
+	//temp
+	char temp_s[32];
+	long int temp = 0;
+	sprintf(path, "%s/thermal_zone%d/temp", TH_PATH, t);
+	f = fopen(path, "r");
+	if(f == NULL || fgets(temp_s, 32, f) == NULL) {
+		fprintf(stderr, "%scould not read thermal status: '%s'\n",
+				BAD_MSG, path);
+	}
+	else temp = strtol(temp_s, NULL, 10);
+	fclose(f);
+
+	therm->temp_c = temp / 1000;
 }

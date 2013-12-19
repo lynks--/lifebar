@@ -416,6 +416,12 @@ int main(int argc, char **argv) {
 		for(i = 0; i < batt_count; i++)
 			batteries[i] = malloc(sizeof *batteries[i]);
 
+		//detect acpi thermal sources
+		int thermal_count = count_acpi_thermal();
+		struct thermal_info *thermals[thermal_count];
+		for(i = 0; i < thermal_count; i++)
+			thermals[i] = malloc(sizeof *thermals[i]);
+
 	// ========= start the main loop =========
 
 		int run = 1;
@@ -503,7 +509,9 @@ int main(int argc, char **argv) {
 				for(i = 0; i < batt_count; i++)
 					read_acpi_battery(i, batteries[i]);
 
-				//TODO read thermal information
+				//read thermal information
+				for(i = 0; i < thermal_count; i++)
+					read_acpi_thermal(i, thermals[i]);
 
 			// ========= iterate over each instance, drawing it =========
 
@@ -649,6 +657,16 @@ int main(int argc, char **argv) {
 							trpadding += render_battery(ins->cairo,
 									ins->output->width - trpadding,
 									textheight, batteries[i], RIGHT);
+							//divider
+							trpadding += render_divider(ins->cairo,
+									ins->output->width - trpadding, RIGHT);
+						}
+
+						//thermal
+						for(i = 0; i < thermal_count; i++) {
+							trpadding += render_thermal(ins->cairo,
+									ins->output->width - trpadding,
+									textheight, thermals[i], RIGHT);
 							//divider
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);

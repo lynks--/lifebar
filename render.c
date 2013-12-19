@@ -135,18 +135,18 @@ int render_battery(cairo_t *cairo, int x, int y,
 
 	switch(batt->status) {
 		case CHARGING:
-			sprintf(batt_string, "batt%d charging %d%%",
+			sprintf(batt_string, "batt-%d charging %d%%",
 					batt->index, batt->percent);
 			break;
 		case DISCHARGING:
-			sprintf(batt_string, "batt%d discharging %d%%",
+			sprintf(batt_string, "batt-%d discharging %d%%",
 					batt->index, batt->percent);
 			break;
 		case FULL:
-			sprintf(batt_string, "batt%d full", batt->index);
+			sprintf(batt_string, "batt-%d full", batt->index);
 			break;
 		case UNKNOWN:
-			sprintf(batt_string, "batt%d status unknown", batt->index);
+			sprintf(batt_string, "batt-%d status unknown", batt->index);
 	}
 
 	cairo_text_extents_t extents;
@@ -159,6 +159,27 @@ int render_battery(cairo_t *cairo, int x, int y,
 	set_cairo_source_colour(cairo, conf->keycol);
 	cairo_move_to(cairo, render_x, y);
 	cairo_show_text(cairo, batt_string);
+
+	//update the padding
+	return extents.width + 2;
+}
+
+int render_thermal(cairo_t *cairo, int x, int y,
+					 struct thermal_info *therm, int d) {
+
+	char therm_string[64];
+	sprintf(therm_string, "thermal-%d %dC", therm->index, therm->temp_c);
+
+	cairo_text_extents_t extents;
+	cairo_text_extents(cairo, therm_string, &extents);
+
+	int render_x = x;
+	if(d == RIGHT) render_x = x - extents.width;
+
+	//draw the text
+	set_cairo_source_colour(cairo, conf->keycol);
+	cairo_move_to(cairo, render_x, y);
+	cairo_show_text(cairo, therm_string);
 
 	//update the padding
 	return extents.width + 2;
