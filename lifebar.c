@@ -438,6 +438,7 @@ int main(int argc, char **argv) {
 		struct ifaddrs *iftwo = NULL;
 		int fsone_alive = 0;
 		int fstwo_alive = 0;
+		char wanip[128];
 		while(run) {
 			uint64_t frame_time = time(NULL);
 
@@ -503,6 +504,22 @@ int main(int argc, char **argv) {
 					//read thermal information
 					for(i = 0; i < thermal_count; i++)
 						read_acpi_thermal(i, thermals[i]);
+
+					//lookup external/wan ip
+					/*
+					struct sockaddr_in sock;
+					int sock_h = socket(AF_INET, SOCK_STREAM, 0);
+					sock.sin_family = AF_INET;
+					//we query ipecho.net/plain using http
+					sock.sin_addr.s_addr = inet_addr("146.255.36.1");
+					sock.sin_port = htons(80);
+					if(connect(sock_h, (struct sockaddr *)&sock,
+						sizeof(struct sockaddr)) == -1) perror("wan sock");
+					else {
+						send(sock_h,
+						"GET /plain HTTP/1.1\r\nHost: ipecho.net\r\nConnection: close\r\n\r\n"
+					}
+					*/
 
 				} //end expensive lookups
 
