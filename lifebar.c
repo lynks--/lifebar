@@ -427,62 +427,90 @@ int main(int argc, char **argv) {
 		int run = 1;
 		int ifone_warned = 0; //warn once
 		int iftwo_warned = 0;
+		uint64_t start = time(NULL);
+		uint64_t last_expensive = 0;	//last time expensive lookups were done
+		struct statvfs fsone;
+		struct i3_workspace *workspaces_list = NULL;
+		struct statvfs fstwo;
+		struct ifaddrs *ifah = NULL;
+		struct ifaddrs *ifap = NULL;
+		struct ifaddrs *ifone = NULL;
+		struct ifaddrs *iftwo = NULL;
+		int fsone_alive = 0;
+		int fstwo_alive = 0;
 		while(run) {
+			uint64_t frame_time = time(NULL);
 
 			// ========= gather information for this iteration =========
 
-				//lookup interface addresses
-				struct ifaddrs *ifah = NULL; //freed after instance loop
-				struct ifaddrs *ifap = NULL;
-				struct ifaddrs *ifone = NULL;
-				struct ifaddrs *iftwo = NULL;
-				if(getifaddrs(&ifah)) perror("getifaddrs");
-				ifap = ifah;
-				while(1) {
-					if(strcmp(ifap->ifa_name, conf->ifone) == 0) {
-						if(ifone == NULL)
-							ifone = ifap; //first encounter
-						else if(ifap->ifa_addr->sa_family == AF_INET)
-							ifone = ifap; //ipv4 overwrites any
-						else if(ifap->ifa_addr->sa_family == AF_INET6 &&
-									ifone->ifa_addr->sa_family != AF_INET)
-							ifone = ifap; //ipv6 overwrites any but ipv4
-					}
-					else if(strcmp(ifap->ifa_name, conf->iftwo) == 0) {
-						if(iftwo == NULL)
-							iftwo = ifap; //first encounter
-						else if(ifap->ifa_addr->sa_family == AF_INET)
-							iftwo = ifap; //ipv4 overwrites any
-						else if(ifap->ifa_addr->sa_family == AF_INET6 &&
-									iftwo->ifa_addr->sa_family != AF_INET)
-							iftwo = ifap; //ipv6 overwrites any but ipv4
+				//we only perform expensive lookups once every EXPENSIVE_TIME
+				if(last_expensive + EXPENSIVE_TIME <= frame_time) {
+					last_expensive = frame_time;
+
+					//lookup interface addresses
+					freeifaddrs(ifah);
+					if(getifaddrs(&ifah)) perror("getifaddrs");
+					ifap = ifah;
+					while(1) {
+						if(strcmp(ifap->ifa_name, conf->ifone) == 0) {
+							if(ifone == NULL)
+								ifone = ifap; //first encounter
+							else if(ifap->ifa_addr->sa_family == AF_INET)
+								ifone = ifap; //ipv4 overwrites any
+							else if(ifap->ifa_addr->sa_family == AF_INET6 &&
+										ifone->ifa_addr->sa_family != AF_INET)
+								ifone = ifap; //ipv6 overwrites any but ipv4
+						}
+						else if(strcmp(ifap->ifa_name, conf->iftwo) == 0) {
+							if(iftwo == NULL)
+								iftwo = ifap; //first encounter
+							else if(ifap->ifa_addr->sa_family == AF_INET)
+								iftwo = ifap; //ipv4 overwrites any
+							else if(ifap->ifa_addr->sa_family == AF_INET6 &&
+										iftwo->ifa_addr->sa_family != AF_INET)
+								iftwo = ifap; //ipv6 overwrites any but ipv4
+						}
+
+						if(ifap->ifa_next == NULL) {
+							if(ifone == NULL && !ifone_warned &&
+											strlen(conf->ifone) > 0) {
+								fprintf(stderr,
+										"%sfailed to find interface '%s'\n",
+										BAD_MSG, conf->ifone);
+								ifone_warned = 1;
+							}
+							if(iftwo == NULL && !iftwo_warned &&
+											strlen(conf->iftwo) > 0) {
+								fprintf(stderr,
+										"%sfailed to find interface '%s'\n",
+										BAD_MSG, conf->iftwo);
+								iftwo_warned = 1;
+							}
+							break;
+						}
+
+						ifap = ifap->ifa_next;
 					}
 
-					if(ifap->ifa_next == NULL) {
-						if(ifone == NULL && !ifone_warned &&
-										strlen(conf->ifone) > 0) {
-							fprintf(stderr,
-									"%sfailed to find interface '%s'\n",
-									BAD_MSG, conf->ifone);
-							ifone_warned = 1;
-						}
-						if(iftwo == NULL && !iftwo_warned &&
-										strlen(conf->iftwo) > 0) {
-							fprintf(stderr,
-									"%sfailed to find interface '%s'\n",
-									BAD_MSG, conf->iftwo);
-							iftwo_warned = 1;
-						}
-						break;
-					}
+					//lookup hdd capacity information
+					fsone_alive = statvfs(conf->fsone, &fsone);
+					fstwo_alive = statvfs(conf->fstwo, &fstwo);
 
-					ifap = ifap->ifa_next;
-				}
+					//read battery information
+					for(i = 0; i < batt_count; i++)
+						read_acpi_battery(i, batteries[i]);
+
+					//read thermal information
+					for(i = 0; i < thermal_count; i++)
+						read_acpi_thermal(i, thermals[i]);
+
+				} //end expensive lookups
+
+				//now cheap or time sensitive lookups
 
 				//query i3 for workspace information
-				//NOTE: this is freed after the instance loop
-				struct i3_workspace *workspaces_list =
-					get_i3_workspaces(i3_sock);
+				free_workspaces_list(workspaces_list);
+				workspaces_list = get_i3_workspaces(i3_sock);
 
 				//check the event buffer for incoming events
 				int mouse_clicked = 0;
@@ -498,20 +526,6 @@ int main(int argc, char **argv) {
 						mouse_y = be->y_root;
 					}
 				}
-
-				//lookup hdd capacity information
-				struct statvfs fsone;
-				struct statvfs fstwo;
-				int fsone_alive = statvfs(conf->fsone, &fsone);
-				int fstwo_alive = statvfs(conf->fstwo, &fstwo);
-
-				//read battery information
-				for(i = 0; i < batt_count; i++)
-					read_acpi_battery(i, batteries[i]);
-
-				//read thermal information
-				for(i = 0; i < thermal_count; i++)
-					read_acpi_thermal(i, thermals[i]);
 
 			// ========= iterate over each instance, drawing it =========
 
@@ -683,11 +697,6 @@ int main(int argc, char **argv) {
 						ins = ins->next;
 
 				} //end instance iteration
-
-			// ========= free the information for this iteration
-
-				free_workspaces_list(workspaces_list);
-				freeifaddrs(ifah);
 
 				//control fps
 				usleep(50000);

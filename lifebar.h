@@ -82,6 +82,9 @@
 #define MAX_WORKSPACES 128
 #define MAX_WS_NAME_LENGTH 64
 
+//how often in seconds do we perform the expensive lookups
+#define EXPENSIVE_TIME 1
+
 struct batt_info {
 	uint32_t index;					//battery number, as in BAT0
 	uint32_t percent;				//how full the battery is 0-100 inc

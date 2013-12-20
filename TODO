@@ -16,12 +16,8 @@ vertical nudge
 
 config module order and presence
 
-only do expensive info gathering (fs, if) once every second or so
-rather than every frame
-
 modules:
 	wan ip
-	cpu temp
 	cpu usage
 	ram usage
 	wifi signal strength
