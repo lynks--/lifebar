@@ -76,15 +76,22 @@
 #define DISCHARGING 1
 #define FULL 2
 #define EMPTY 3
+#define UNKNOWN 4
 
 //max workspaces tracked for click events
 #define MAX_WORKSPACES 128
 #define MAX_WS_NAME_LENGTH 64
 
 struct batt_info {
+	uint32_t index;					//battery number, as in BAT0
 	uint32_t percent;				//how full the battery is 0-100 inc
-	uint32_t state;					//CHARGING DISCHARGING FULL EMPTY
+	uint32_t status;				//CHARGING DISCHARGING FULL EMPTY
 	uint32_t time;					//how long until FULL/EMPTY in seconds
+};
+
+struct thermal_info {
+	uint32_t index;					//thermal zone index
+	uint32_t temp_c;				//temp in c
 };
 
 struct i3_output {
@@ -187,6 +194,10 @@ int count_acpi_batteries();
 
 void read_acpi_battery(int, struct batt_info *);
 
+int count_acpi_thermal();
+
+void read_acpi_thermal(int, struct thermal_info *);
+
 int render_divider(cairo_t *, int, int);
 
 int render_workspace(cairo_t *, int, int, struct i3_workspace *, int);
@@ -198,3 +209,7 @@ int render_date(cairo_t *, int, int, int);
 int render_interface(cairo_t *, int, int, struct ifaddrs *, int);
 
 int render_filesystem(cairo_t *, int, int, struct statvfs *, char *, int);
+
+int render_battery(cairo_t *, int, int, struct batt_info *, int);
+
+int render_thermal(cairo_t *, int, int, struct thermal_info *, int);

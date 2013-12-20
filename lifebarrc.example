@@ -58,7 +58,7 @@ datefont	"sans-8"
 alarmfont	"sans-8-bold"
 wsfont		"sans-8"
 
-# layout all workspaces / fsone | wanip | ifone | date | time
+# layout all workspaces / batt1 | therm1 | fsone | wanip | ifone | date | time
 # battery, volume, temperature, cpu usage, ram usage (graphs?) wifi strength
 # vpn status
 
