@@ -2,7 +2,7 @@
 
 struct config *conf;
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
 	int i;
 
 	// ========= do early setup =========
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 		conf->alarmcol = prepare_colour(200, 20, 20, 255);
 		conf->divcol = prepare_colour(50, 50, 70, 255);
 		conf->viswscol = prepare_colour(0, 0, 0, 255);
-		conf->inviswscol = prepare_colour(80, 80, 80, 255);
+		conf->inviswscol = prepare_colour(0, 0, 0, 100);
 		conf->groove_dark = prepare_colour(10, 10, 10, 40);
 		conf->groove_light = prepare_colour(250, 250, 250, 40);
 
