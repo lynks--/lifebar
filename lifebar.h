@@ -1,7 +1,7 @@
 /*
  * Lifebar - i3wm workspace status and tool bar.
  *
- * Copyright (C) 2013 lynks@adranos.com
+ * Copyright (c) 2013 lynks@adranos.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License v3 as published
