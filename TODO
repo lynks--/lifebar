@@ -1,7 +1,5 @@
 key/value colours
 key/value padding
-time colour
-date colour
 good and bad colours
 good and bad thresholds (battery, signal strength, temperature)
 
@@ -9,8 +7,7 @@ tray icons
 
 font selection
 
-alarm system
-mouse over time (set alarm)
+alarm animation
 
 vertical nudge
 

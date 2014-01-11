@@ -80,6 +80,7 @@
 #define MAX_WS_NAME_LENGTH 64
 
 //how often in seconds do we perform the expensive lookups
+//NOTE: currently this is used to decrement alarm, so it should stay at 1
 #define EXPENSIVE_TIME 1
 
 struct batt_info {
@@ -159,6 +160,7 @@ struct config {
 	char fstwo[32];					//fs location, eg /home
 	uint32_t alarm_increment_s;		//alarm increment in seconds eg 300
 	struct colour *tintcol;			//transparency tint colour
+	struct colour *alarmtintcol;	//background tint for alarm flash
 	struct colour *keycol;			//main key text colour
 	struct colour *valcol;			//main value text colour
 	struct colour *timecol;			//time text colour

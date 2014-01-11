@@ -33,7 +33,8 @@ int main(int argc, char *argv[]) {
 		strcpy(conf->fsone, "/home");
 		strcpy(conf->fstwo, "");
 		conf->alarm_increment_s = 300;
-		conf->tintcol = prepare_colour(255, 255, 255, 80);
+		conf->tintcol = prepare_colour(255, 255, 255, 60);
+		conf->alarmtintcol = prepare_colour(255, 50, 50, 180);
 		conf->keycol = prepare_colour(20, 20, 20, 255);
 		conf->valcol = prepare_colour(50, 50, 50, 255);
 		conf->timecol = prepare_colour(20, 20, 20, 255);
@@ -143,6 +144,10 @@ int main(int argc, char *argv[]) {
 							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->tintcol = col;
 						}
+						else if(strcmp(key, "alarmtintcol") == 0) {
+							struct colour *col = parse_config_colour(value);
+							if(col != NULL) conf->alarmtintcol = col;
+						}
 						else if(strcmp(key, "keycol") == 0) {
 							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->keycol = col;
@@ -177,7 +182,6 @@ int main(int argc, char *argv[]) {
 						}
 					}
 					else {
-						printf("%d\n", success);
 						fprintf(stderr, "%serror parsing config line: %s\n",
 								BAD_MSG, line);
 						continue;
@@ -438,6 +442,7 @@ int main(int argc, char *argv[]) {
 		int iftwo_warned = 0;
 		uint64_t start = time(NULL);
 		uint64_t last_expensive = 0;	//last time expensive lookups were done
+		uint64_t alarm_activate = 0;
 		struct statvfs fsone;
 		struct i3_workspace *workspaces_list = NULL;
 		struct statvfs fstwo;
@@ -461,7 +466,11 @@ int main(int argc, char *argv[]) {
 					//decrement the alarm
 					if(alarm_s > EXPENSIVE_TIME) 
 						alarm_s -= EXPENSIVE_TIME;
-					else alarm_s = 0;
+					else if(alarm_s > 0) {
+						//alarm timer has finised
+						alarm_activate = frame_time;
+						alarm_s = 0;
+					}
 
 					//lookup interface addresses
 					freeifaddrs(ifah);
@@ -636,6 +645,15 @@ int main(int argc, char *argv[]) {
 						else {
 							set_cairo_source_colour(ins->cairo, conf->tintcol);
 							cairo_paint_with_alpha(ins->cairo, 1.0);
+						}
+						
+						//we overlay the alarm flash if required
+						if(frame_time < alarm_activate + 7) {
+							if((frame_time - alarm_activate + 1) % 2) {
+								set_cairo_source_colour(ins->cairo,
+														conf->alarmtintcol);
+								cairo_paint(ins->cairo);
+							}
 						}
 
 					// ========= left side =========
