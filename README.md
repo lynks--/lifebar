@@ -1,9 +1,11 @@
 lifebar
 =======
 
-**Lifebar - i3wm workspace status and tool bar.h**
+**Lifebar - i3wm workspace status and tool bar for Linux**
 
 NOTE: this readme contains lies. not everything here is implemented yet! :(
+
+ALSO NOTE: There might be a couple of issues at the moment running lifebar on 32 bit systems :(
 
 _Configuration_
 

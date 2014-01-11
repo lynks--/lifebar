@@ -192,7 +192,44 @@ int render_time(cairo_t *cairo, int x, int y, int d) {
 
 	strftime(time_string, 128, conf->timefmt, now);
 
-	set_cairo_source_colour(cairo, conf->keycol);
+	set_cairo_source_colour(cairo, conf->timecol);
+
+	cairo_text_extents_t extents;
+	cairo_text_extents(cairo, time_string, &extents);
+
+	int render_x = x;
+	if(d == RIGHT) render_x = x - extents.width;
+
+	cairo_move_to(cairo, render_x, y);
+	cairo_show_text(cairo, time_string);
+
+	return extents.width - 1;
+}
+
+int render_alarm(cairo_t *cairo, uint32_t alarm_s, int x, int y, int d) {
+	struct tm *atm = malloc(sizeof *atm);
+	memset(atm, 0, sizeof *atm);
+	char *format = malloc(32);
+	sprintf(format, "%s", "%M:%S");
+	char time_string[128];
+
+	while(alarm_s >= 3600) {
+		atm->tm_hour++;
+		alarm_s -= 3600;
+		sprintf(format, "%s", "%H:%M:%S");
+	}
+	while(alarm_s >= 60) {
+		atm->tm_min++;
+		alarm_s -= 60;
+	}
+	atm->tm_sec = alarm_s;
+
+
+	strftime(time_string, 128, format, atm);
+	free(atm);
+	free(format);
+
+	set_cairo_source_colour(cairo, conf->alarmcol);
 
 	cairo_text_extents_t extents;
 	cairo_text_extents(cairo, time_string, &extents);
@@ -213,7 +250,7 @@ int render_date(cairo_t *cairo, int x, int y, int d) {
 
 	strftime(date_string, 256, conf->datefmt, now);
 
-	set_cairo_source_colour(cairo, conf->keycol);
+	set_cairo_source_colour(cairo, conf->datecol);
 
 	cairo_text_extents_t extents;
 	cairo_text_extents(cairo, date_string, &extents);

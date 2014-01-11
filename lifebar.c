@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
 		strcpy(conf->iftwo, "");
 		strcpy(conf->fsone, "/home");
 		strcpy(conf->fstwo, "");
+		conf->alarm_increment_s = 300;
 		conf->tintcol = prepare_colour(255, 255, 255, 80);
 		conf->keycol = prepare_colour(20, 20, 20, 255);
 		conf->valcol = prepare_colour(50, 50, 50, 255);
@@ -131,6 +132,13 @@ int main(int argc, char *argv[]) {
 							strcpy(conf->fsone, value);
 						else if(strcmp(key, "fstwo") == 0)
 							strcpy(conf->fstwo, value);
+						else if(strcmp(key, "alarminc") == 0) {
+							int x = atoi(value);
+							if(x > 0) conf->alarm_increment_s = x;
+							else fprintf(stderr,
+								"%sbad value for config key 'alarminc':%s\n",
+								BAD_MSG, value);
+						}
 						else if(strcmp(key, "tintcol") == 0) {
 							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->tintcol = col;
@@ -269,6 +277,7 @@ int main(int argc, char *argv[]) {
 			ins->ws_layout = malloc(sizeof *ins->ws_layout);
 			for(i = 0; i < MAX_WORKSPACES; i++)
 				ins->ws_layout->ws_name[i][0] = '\0';
+			ins->time_layout = malloc(sizeof *ins->time_layout);
 			instance_list = ins;
 
 			//create the window
@@ -439,6 +448,7 @@ int main(int argc, char *argv[]) {
 		int fsone_alive = 0;
 		int fstwo_alive = 0;
 		char wanip[128];
+		uint32_t alarm_s = 0; //time to alarm, in seconds
 		while(run) {
 			uint64_t frame_time = time(NULL);
 
@@ -447,6 +457,11 @@ int main(int argc, char *argv[]) {
 				//we only perform expensive lookups once every EXPENSIVE_TIME
 				if(last_expensive + EXPENSIVE_TIME <= frame_time) {
 					last_expensive = frame_time;
+
+					//decrement the alarm
+					if(alarm_s > EXPENSIVE_TIME) 
+						alarm_s -= EXPENSIVE_TIME;
+					else alarm_s = 0;
 
 					//lookup interface addresses
 					freeifaddrs(ifah);
@@ -533,6 +548,7 @@ int main(int argc, char *argv[]) {
 				int mouse_clicked = 0;
 				int mouse_x = 0;
 				int mouse_y = 0;
+				int mouse_button = 0;
 				while(XPending(d)) {
 					XEvent e;
 					XNextEvent(d, &e);
@@ -541,6 +557,7 @@ int main(int argc, char *argv[]) {
 						mouse_clicked = 1;
 						mouse_x = be->x_root;
 						mouse_y = be->y_root;
+						mouse_button = be->button;
 					}
 				}
 
@@ -556,23 +573,56 @@ int main(int argc, char *argv[]) {
 							if(mouse_x > ins->output->x &&
 							   mouse_x <
 									(ins->output->x + ins->output->width)) {
+
+								//iterate over workspace layout list
 								for(i = 0; i < MAX_WORKSPACES; i++) {
+
+									//zero length name indicates the list
+									//terminator
 									if(!strlen(ins->ws_layout->ws_name[i]))
 										break;
-									if(mouse_x <
-												ins->output->x +
+
+									//is the click event inside this workspace
+									//name area
+									if(mouse_x < ins->output->x +
 												ins->ws_layout->x_max[i]) {
-										char i3_payload[256];
-										sprintf(i3_payload,
+
+										if(mouse_button == 1) {
+											//left click switches workspace
+											char i3_payload[256];
+											sprintf(i3_payload,
 												"workspace %s", 
 												ins->ws_layout->ws_name[i]);
-										char *res;
-										i3_ipc_send(&res, i3_sock, COMMAND,
-													i3_payload);
-										free_ipc_result(res);
+											char *res;
+											i3_ipc_send(&res, i3_sock, COMMAND,
+														i3_payload);
+											free_ipc_result(res);
+										}
 										break;
 									}
 								}
+
+								//handle mouse wheel on time
+								if(mouse_x >
+										ins->output->x +
+										ins->time_layout->x_min &&
+								   mouse_x <
+										ins->output->x +
+										ins->time_layout->x_max) {
+
+									if(mouse_button == 4) {
+										//mw up
+										alarm_s += conf->alarm_increment_s;
+									}
+									else if(mouse_button == 5) {
+										//mw_down
+										if(alarm_s < conf->alarm_increment_s)
+											alarm_s = 0;
+										else
+											alarm_s -= conf->alarm_increment_s;
+									}
+								}
+
 							}
 						}
 
@@ -624,9 +674,24 @@ int main(int argc, char *argv[]) {
 						uint32_t trpadding = conf->rpadding;
 
 						//time
+						ins->time_layout->x_max =
+							ins->output->width - trpadding;
 						trpadding += render_time(ins->cairo,
 										ins->output->width - trpadding,
 										textheight, RIGHT);
+
+						//alarm
+						if(alarm_s > 0) {
+							//divider
+							trpadding += render_divider(ins->cairo,
+										ins->output->width - trpadding, RIGHT);
+
+							trpadding += render_alarm(ins->cairo, alarm_s,
+										ins->output->width - trpadding,
+										textheight, RIGHT);
+						}
+						ins->time_layout->x_min =
+							ins->output->width - trpadding;
 
 						//divider
 						trpadding += render_divider(ins->cairo,
