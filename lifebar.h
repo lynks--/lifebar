@@ -118,6 +118,11 @@ struct ws_layout {
 	uint32_t x_max[MAX_WORKSPACES];
 };
 
+struct time_layout {
+	uint32_t x_min;
+	uint32_t x_max;
+};
+
 struct instance {
 	Window w;
 	XImage *bg;						//background
@@ -127,6 +132,7 @@ struct instance {
 	GC gc;							//graphics context
 	struct i3_output *output;		//output info for this instance
 	struct ws_layout *ws_layout;	//store positions of ws dividers for clicks
+	struct time_layout *time_layout;//store position of time for mousewheel
 	struct instance *next;
 };
 
@@ -151,6 +157,7 @@ struct config {
 	char iftwo[32];					//interface name, eg eth0
 	char fsone[32];					//fs location, eg /home
 	char fstwo[32];					//fs location, eg /home
+	uint32_t alarm_increment_s;		//alarm increment in seconds eg 300
 	struct colour *tintcol;			//transparency tint colour
 	struct colour *keycol;			//main key text colour
 	struct colour *valcol;			//main value text colour
@@ -203,6 +210,8 @@ int render_divider(cairo_t *, int, int);
 int render_workspace(cairo_t *, int, int, struct i3_workspace *, int);
 
 int render_time(cairo_t *, int, int, int);
+
+int render_alarm(cairo_t *, uint32_t, int, int, int);
 
 int render_date(cairo_t *, int, int, int);
 
