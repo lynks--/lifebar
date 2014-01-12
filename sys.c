@@ -2,6 +2,7 @@
 
 #define PS_PATH "/sys/class/power_supply"
 #define TH_PATH "/sys/class/thermal"
+#define NET_PATH "/sys/class/net"
 
 int count_acpi_batteries() {
 	DIR *d;
@@ -114,4 +115,31 @@ void read_acpi_thermal(int t, struct thermal_info *therm) {
 	fclose(f);
 
 	therm->temp_c = temp / 1000;
+}
+
+void read_net_speed(char *ifname, struct net_speed_info *net) {
+	char path[128];
+	FILE *f;
+
+	//download
+	char rxb_s[32];
+	sprintf(path, "%s/%s/statistics/rx_bytes", NET_PATH, ifname);
+	f = fopen(path, "r");
+	if(f == NULL || fgets(rxb_s, 32, f) == NULL) {
+		fprintf(stderr, "%scould not read interface speed: '%s'\n",
+				BAD_MSG, path);
+	}
+	else net->down_bytes = strtol(rxb_s, NULL, 10);
+	fclose(f);
+
+	//upload
+	char txb_s[32];
+	sprintf(path, "%s/%s/statistics/tx_bytes", NET_PATH, ifname);
+	f = fopen(path, "r");
+	if(f == NULL || fgets(txb_s, 32, f) == NULL) {
+		fprintf(stderr, "%scould not read interface speed: '%s'\n",
+				BAD_MSG, path);
+	}
+	else net->up_bytes = strtol(txb_s, NULL, 10);
+	fclose(f);
 }

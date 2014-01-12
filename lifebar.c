@@ -444,12 +444,16 @@ int main(int argc, char *argv[]) {
 		uint64_t last_expensive = 0;	//last time expensive lookups were done
 		uint64_t alarm_activate = 0;
 		struct statvfs fsone;
-		struct i3_workspace *workspaces_list = NULL;
 		struct statvfs fstwo;
+		struct i3_workspace *workspaces_list = NULL;
 		struct ifaddrs *ifah = NULL;
 		struct ifaddrs *ifap = NULL;
 		struct ifaddrs *ifone = NULL;
 		struct ifaddrs *iftwo = NULL;
+		struct net_speed_info *ifone_speed = NULL;
+		struct net_speed_info *iftwo_speed = NULL;
+		struct net_speed_info *ifone_prev_speed = NULL;
+		struct net_speed_info *iftwo_prev_speed = NULL;
 		int fsone_alive = 0;
 		int fstwo_alive = 0;
 		char wanip[128];
@@ -517,6 +521,25 @@ int main(int argc, char *argv[]) {
 						ifap = ifap->ifa_next;
 					}
 
+					//read interface speed
+					if(ifone != NULL) {
+						//NOTE: rather than malloc and free, we should just
+						//iterate between two pointers here
+
+						free(ifone_prev_speed);
+						ifone_prev_speed = ifone_speed;
+
+						ifone_speed = malloc(sizeof *ifone_speed);
+						read_net_speed(conf->ifone, ifone_speed);
+					}
+					if(iftwo != NULL) {
+						free(iftwo_prev_speed);
+						iftwo_prev_speed = iftwo_speed;
+
+						iftwo_speed = malloc(sizeof *iftwo_speed);
+						read_net_speed(conf->iftwo, iftwo_speed);
+					}
+
 					//lookup hdd capacity information
 					fsone_alive = statvfs(conf->fsone, &fsone);
 					fstwo_alive = statvfs(conf->fstwo, &fstwo);
@@ -530,6 +553,7 @@ int main(int argc, char *argv[]) {
 						read_acpi_thermal(i, thermals[i]);
 
 					//lookup external/wan ip
+					//TODO curl this
 					/*
 					struct sockaddr_in sock;
 					int sock_h = socket(AF_INET, SOCK_STREAM, 0);
@@ -725,10 +749,12 @@ int main(int argc, char *argv[]) {
 										ins->output->width - trpadding, RIGHT);
 
 						//ifone
-						if(strlen(conf->ifone) > 0) {
+						if(ifone != NULL && ifone_prev_speed != NULL) {
 							trpadding += render_interface(ins->cairo,
 											ins->output->width - trpadding,
-											textheight, ifone, RIGHT);
+											textheight, ifone,
+											ifone_prev_speed, ifone_speed, 
+											RIGHT);
 
 							//divider
 							trpadding += render_divider(ins->cairo,
@@ -736,10 +762,12 @@ int main(int argc, char *argv[]) {
 						}
 
 						//iftwo
-						if(strlen(conf->iftwo) > 0) {
+						if(iftwo != NULL && iftwo_prev_speed != NULL) {
 							trpadding += render_interface(ins->cairo,
 											ins->output->width - trpadding,
-											textheight, iftwo, RIGHT);
+											textheight, iftwo,
+											iftwo_prev_speed, iftwo_speed,
+											RIGHT);
 
 							//divider
 							trpadding += render_divider(ins->cairo,

@@ -95,6 +95,11 @@ struct thermal_info {
 	uint32_t temp_c;				//temp in c
 };
 
+struct net_speed_info {
+	uint64_t down_bytes;			//these are just current totals, we have to
+	uint64_t up_bytes;				//compare to previous readings for speed
+};
+
 struct i3_output {
 	char name[16];
 	char active[16];
@@ -217,10 +222,13 @@ int render_alarm(cairo_t *, uint32_t, int, int, int);
 
 int render_date(cairo_t *, int, int, int);
 
-int render_interface(cairo_t *, int, int, struct ifaddrs *, int);
+int render_interface(cairo_t *, int, int, struct ifaddrs *,
+			struct net_speed_info *, struct net_speed_info *, int);
 
 int render_filesystem(cairo_t *, int, int, struct statvfs *, char *, int);
 
 int render_battery(cairo_t *, int, int, struct batt_info *, int);
 
 int render_thermal(cairo_t *, int, int, struct thermal_info *, int);
+
+void read_net_speed(char *, struct net_speed_info *);

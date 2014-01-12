@@ -46,7 +46,8 @@ int render_divider(cairo_t *cairo, int x, int d) {
 	return 10;
 }
 
-int render_interface(cairo_t *cairo, int x, int y, struct ifaddrs *a, int d) {
+int render_interface(cairo_t *cairo, int x, int y, struct ifaddrs *a,
+			struct net_speed_info *p_spd, struct net_speed_info *spd, int d) {
 	char if_string[256];
 	if_string[0] = '\0';
 
@@ -58,8 +59,15 @@ int render_interface(cairo_t *cairo, int x, int y, struct ifaddrs *a, int d) {
 			struct sockaddr_in *addr = (struct sockaddr_in *)a->ifa_addr;
 			char readable[256];
 			inet_ntop(addr->sin_family, &(addr->sin_addr), readable, 256);
+
+			//calculate speed
+			float down = (float)(spd->down_bytes - p_spd->down_bytes) /
+									(float)(EXPENSIVE_TIME * 1024);
+			float up = (float)(spd->up_bytes - p_spd->up_bytes) /
+									(float)(EXPENSIVE_TIME * 1024);
 		
-			sprintf(if_string, "%s %s", conf->ifone, readable);
+			sprintf(if_string, "%s %s [ %.2fKiB/s] [up %.2fKiB/s]",
+					conf->ifone, readable, down, up);
 		}
 		else sprintf(if_string, "%s down", conf->ifone);
 	}
