@@ -1,25 +1,20 @@
-key/value colours
-key/value padding
 good and bad colours
 good and bad thresholds (battery, signal strength, temperature)
 
 tray icons
 
-font selection
-
-alarm animation
-
 vertical nudge
+vertical font height positioning
 
 config module order and presence
 
 modules:
-	wan ip
 	cpu usage
 	ram usage
 	wifi signal strength
-	alsa volumes
+	alsa/pulse volumes
 	vpn status
 	arp cache watch
 	mailbox
 	weather
+

@@ -18,6 +18,11 @@ int main(int argc, char *argv[]) {
 
 		conf = (struct config*)malloc(sizeof(struct config));
 
+		cairo_font_face_t *default_font = 
+			cairo_toy_font_face_create("", CAIRO_FONT_SLANT_NORMAL,
+										   CAIRO_FONT_WEIGHT_NORMAL);
+		double default_font_size = 10.0;
+
 		//first we set the defaults to avoid unset values
 		conf->position = BOTTOM;
 		conf->depth = 20;
@@ -25,6 +30,7 @@ int main(int argc, char *argv[]) {
 		strcpy(conf->timefmt, "%H:%M");
 		conf->rpadding = 10;
 		conf->lpadding = 10;
+		conf->kvpadding = 6;
 		conf->divpadding = 10;
 		conf->divwidth = 1;
 		conf->divstyle = GROOVE;
@@ -45,6 +51,16 @@ int main(int argc, char *argv[]) {
 		conf->inviswscol = prepare_colour(0, 0, 0, 100);
 		conf->groove_dark = prepare_colour(10, 10, 10, 40);
 		conf->groove_light = prepare_colour(250, 250, 250, 40);
+		conf->keyfont = default_font;
+		conf->keyfontsize = default_font_size;
+		conf->valfont = default_font;
+		conf->valfontsize = default_font_size;
+		conf->datefont = default_font;
+		conf->datefontsize = default_font_size;
+		conf->timefont = default_font;
+		conf->timefontsize = default_font_size;
+		conf->wsfont = default_font;
+		conf->wsfontsize = default_font_size;
 
 		//now overwrite the defaults with any configured values
 		char *confpath = malloc(1024);
@@ -106,6 +122,13 @@ int main(int argc, char *argv[]) {
 							if(x > 0) conf->lpadding = x;
 							else fprintf(stderr,
 								  "%sbad value for config key 'lpadding':%s\n",
+								  BAD_MSG, value);
+						}
+						else if(strcmp(key, "kvpadding") == 0) {
+							int x = atoi(value);
+							if(x > 0) conf->kvpadding = x;
+							else fprintf(stderr,
+								  "%sbad value for config key 'kvpadding':%s\n",
 								  BAD_MSG, value);
 						}
 						else if(strcmp(key, "divpadding") == 0) {
@@ -180,6 +203,16 @@ int main(int argc, char *argv[]) {
 							struct colour *col = parse_config_colour(value);
 							if(col != NULL) conf->inviswscol = col;
 						}
+						else if(strcmp(key, "keyfont") == 0)
+							parse_config_font("keyfont", value);
+						else if(strcmp(key, "valfont") == 0)
+							parse_config_font("valfont", value);
+						else if(strcmp(key, "datefont") == 0)
+							parse_config_font("datefont", value);
+						else if(strcmp(key, "timefont") == 0)
+							parse_config_font("timefont", value);
+						else if(strcmp(key, "wsfont") == 0)
+							parse_config_font("wsfont", value);
 					}
 					else {
 						fprintf(stderr, "%serror parsing config line: %s\n",
@@ -435,7 +468,7 @@ int main(int argc, char *argv[]) {
 		for(i = 0; i < thermal_count; i++)
 			thermals[i] = malloc(sizeof *thermals[i]);
 
-	// ========= start the main loop =========
+	// ========= set up all the persistant variables for main loop =========
 
 		int run = 1;
 		int ifone_warned = 0; //warn once
@@ -443,6 +476,7 @@ int main(int argc, char *argv[]) {
 		uint64_t start = time(NULL);
 		uint64_t last_expensive = 0;	//last time expensive lookups were done
 		uint64_t alarm_activate = 0;
+		uint64_t last_external = 0; //last time external ip was pinged
 		struct statvfs fsone;
 		struct statvfs fstwo;
 		struct i3_workspace *workspaces_list = NULL;
@@ -458,6 +492,22 @@ int main(int argc, char *argv[]) {
 		int fstwo_alive = 0;
 		char wanip[128];
 		uint32_t alarm_s = 0; //time to alarm, in seconds
+
+		//ready the curl handle for external ip lookup
+		CURL *ipe_curl;
+		CURLcode ipe_res;
+		ipe_curl = curl_easy_init();
+		struct curl_writedata ipe_writedata;
+		ipe_writedata.buffer = NULL;
+		ipe_writedata.size = 0;
+		curl_easy_setopt(ipe_curl, CURLOPT_URL, "http://ipecho.net/plain");
+		curl_easy_setopt(ipe_curl, CURLOPT_WRITEFUNCTION, curl_writeback);
+		curl_easy_setopt(ipe_curl, CURLOPT_WRITEDATA, (void *)&ipe_writedata);
+		curl_easy_setopt(ipe_curl, CURLOPT_USERAGENT, "libcurl/lifebar");
+		char *ipe_char = malloc(64);
+
+	// ========= start the main loop =========
+
 		while(run) {
 			uint64_t frame_time = time(NULL);
 
@@ -479,7 +529,12 @@ int main(int argc, char *argv[]) {
 					//lookup interface addresses
 					freeifaddrs(ifah);
 					if(getifaddrs(&ifah)) perror("getifaddrs");
+					//set the iterator pointer to the head
 					ifap = ifah;
+					//we have to unset these, otherwise they remain pointed
+					//to the old linked list, that we just freed above
+					ifone = NULL;
+					iftwo = NULL;
 					while(1) {
 						if(strcmp(ifap->ifa_name, conf->ifone) == 0) {
 							if(ifone == NULL)
@@ -552,26 +607,22 @@ int main(int argc, char *argv[]) {
 					for(i = 0; i < thermal_count; i++)
 						read_acpi_thermal(i, thermals[i]);
 
-					//lookup external/wan ip
-					//TODO curl this
-					/*
-					struct sockaddr_in sock;
-					int sock_h = socket(AF_INET, SOCK_STREAM, 0);
-					sock.sin_family = AF_INET;
-					//we query ipecho.net/plain using http
-					sock.sin_addr.s_addr = inet_addr("146.255.36.1");
-					sock.sin_port = htons(80);
-					if(connect(sock_h, (struct sockaddr *)&sock,
-						sizeof(struct sockaddr)) == -1) perror("wan sock");
-					else {
-						send(sock_h,
-						"GET /plain HTTP/1.1\r\nHost: ipecho.net\r\nConnection: close\r\n\r\n"
+					//lookup external/wan ip, we do this even slower
+					//than the other 'expensive' lookups
+					if(last_external + EXTERNAL_IP_TIME <= frame_time) {
+						last_external = frame_time;
+
+						if(ipe_curl) {
+							ipe_res = curl_easy_perform(ipe_curl);
+							strcpy(ipe_char, ipe_writedata.buffer);
+							//and reset the buffer
+							ipe_writedata.buffer[0] = '\0';
+							ipe_writedata.size = 0;
+						}
 					}
-					*/
+				} //end expensive
 
-				} //end expensive lookups
-
-				//now cheap or time sensitive lookups
+				//now cheap or time-sensitive lookups
 
 				//query i3 for workspace information
 				free_workspaces_list(workspaces_list);
@@ -643,12 +694,14 @@ int main(int argc, char *argv[]) {
 										ins->output->x +
 										ins->time_layout->x_max) {
 
-									if(mouse_button == 4) {
-										//mw up
+									if(mouse_button == 4 ||
+												mouse_button == 1) { 
+										//increment alarm
 										alarm_s += conf->alarm_increment_s;
 									}
-									else if(mouse_button == 5) {
-										//mw_down
+									else if(mouse_button == 5 ||
+												mouse_button == 3) {
+										//decrement alarm
 										if(alarm_s < conf->alarm_increment_s)
 											alarm_s = 0;
 										else
@@ -774,6 +827,19 @@ int main(int argc, char *argv[]) {
 										ins->output->width - trpadding, RIGHT);
 						}
 
+						//wanip
+						if(strlen(ipe_char) > 0) {
+							trpadding += render_keyvalue(ins->cairo,
+											ins->output->width - trpadding,
+											textheight, "external_ip",
+											ipe_char, RIGHT);
+
+							//divider
+							trpadding += render_divider(ins->cairo,
+										ins->output->width - trpadding, RIGHT);
+						}
+
+
 						//fsone
 						if(fsone_alive == 0) {
 							trpadding += render_filesystem(ins->cairo,
@@ -831,4 +897,14 @@ int main(int argc, char *argv[]) {
 
 		} //end main loop
 
+}
+
+size_t curl_writeback(void *new, size_t len, size_t nmem, void *writedata) {
+	struct curl_writedata *d = (struct curl_writedata *)writedata;
+	size_t bytelen = len * nmem;
+
+	d->buffer = realloc(d->buffer, d->size + bytelen + 1);
+	memcpy(d->buffer + d->size, new, bytelen);
+	d->size += bytelen;
+	d->buffer[d->size] = '\0';
 }

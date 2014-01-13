@@ -42,8 +42,8 @@ tintcol		"255,255,255, 60"
 # main background colour when alarm is flashing
 alarmtintcol	"255, 50, 50,180"
 # main key and value text colours
-keycol		" 20, 20, 20,255"
-valcol		" 20, 20, 20,200"
+keycol		" 40, 40, 60,120"
+valcol		" 20, 20, 20,255"
 # time and date text colours
 timecol		" 10, 10, 10,255"
 datecol		" 10, 10, 10,255"
@@ -55,13 +55,13 @@ viswscol	" 20, 20, 20,255"
 # workspace name text colour when that workspace is not visible
 inviswscol	" 20, 20, 20,100"
 
-# fonts
-keyfont		"sans-8-bold"
-valfont		"sans-8"
-timefont	"sans-8-bold"
-datefont	"sans-8"
-alarmfont	"sans-8-bold"
-wsfont		"sans-8"
+# font configuration
+# format is <face>:<weight>:<size> where <weight> is either 'bold' or 'normal'
+keyfont		"deja vu sans:normal:10"
+valfont		"deja vu sans:normal:10"
+datefont	"deja vu sans:normal:10"
+timefont	"deja vu sans:bold:10"
+wsfont		"deja vu sans:normal:10"
 
 # layout all workspaces / batt1 | therm1 | fsone | wanip | ifone | date | time
 # battery, volume, temperature, cpu usage, ram usage (graphs?) wifi strength

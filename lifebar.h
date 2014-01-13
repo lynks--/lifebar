@@ -38,6 +38,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ifaddrs.h>
+#include <curl/curl.h>
 
 //i3 ipc message types
 #define COMMAND 0
@@ -82,6 +83,8 @@
 //how often in seconds do we perform the expensive lookups
 //NOTE: currently this is used to decrement alarm, so it should stay at 1
 #define EXPENSIVE_TIME 1
+//ping our external ip every x seconds
+#define EXTERNAL_IP_TIME 300
 
 struct batt_info {
 	uint32_t index;					//battery number, as in BAT0
@@ -149,6 +152,11 @@ struct colour {
 	unsigned char alpha;
 };
 
+struct curl_writedata {
+	char *buffer;
+	size_t size;
+};
+
 struct config {
 	uint32_t position;				//TOP or BOTTOM
 	uint32_t depth;					//bar depth, eg 20
@@ -156,6 +164,7 @@ struct config {
 	char timefmt[64];				//time strftime format string
 	uint32_t rpadding;				//padding on right screen edge
 	uint32_t lpadding;				//padding on left screen edge
+	uint32_t kvpadding;				//padding between key and value
 	uint32_t divpadding;			//padding either side of divider lines
 	uint32_t divwidth;				//divider line width
 	uint32_t divstyle;				//divider line style (LINE or GROOVE)
@@ -176,6 +185,16 @@ struct config {
 	struct colour *inviswscol;		//text colour for invisible workspace
 	struct colour *groove_light;	//light side of groove overlay
 	struct colour *groove_dark;		//dark side of groove overlay
+	cairo_font_face_t *keyfont;		//main key text font
+	double keyfontsize;				//main key text size
+	cairo_font_face_t *valfont;		//main value text font
+	double valfontsize;				//main value text size
+	cairo_font_face_t *datefont;	//date text font
+	double datefontsize;			//date text size
+	cairo_font_face_t *timefont;	//time text font
+	double timefontsize;			//time text size
+	cairo_font_face_t *wsfont;		//workspace text font
+	double wsfontsize;				//workspace text size
 };
 
 extern struct config *conf;
@@ -204,6 +223,8 @@ void get_i3_sockpath(char **);
 
 struct colour *parse_config_colour(char *);
 
+void parse_config_font(const char *, char *);
+
 int count_acpi_batteries();
 
 void read_acpi_battery(int, struct batt_info *);
@@ -231,4 +252,8 @@ int render_battery(cairo_t *, int, int, struct batt_info *, int);
 
 int render_thermal(cairo_t *, int, int, struct thermal_info *, int);
 
+int render_keyvalue(cairo_t *, int, int, char *, char *, int);
+
 void read_net_speed(char *, struct net_speed_info *);
+
+size_t curl_writeback(void *, size_t, size_t, void *);
