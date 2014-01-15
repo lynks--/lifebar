@@ -910,4 +910,6 @@ size_t curl_writeback(void *new, size_t len, size_t nmem, void *writedata) {
 	memcpy(d->buffer + d->size, new, bytelen);
 	d->size += bytelen;
 	d->buffer[d->size] = '\0';
+
+	return bytelen;
 }
