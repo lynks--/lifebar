@@ -41,8 +41,8 @@ int main(int argc, char *argv[]) {
 		conf->alarm_increment_s = 300;
 		conf->tintcol = prepare_colour(255, 255, 255, 60);
 		conf->alarmtintcol = prepare_colour(255, 50, 50, 180);
-		conf->keycol = prepare_colour(20, 20, 20, 255);
-		conf->valcol = prepare_colour(50, 50, 50, 255);
+		conf->keycol = prepare_colour(20, 20, 20, 140);
+		conf->valcol = prepare_colour(20, 20, 20, 255);
 		conf->timecol = prepare_colour(20, 20, 20, 255);
 		conf->datecol = prepare_colour(20, 20, 20, 255);
 		conf->alarmcol = prepare_colour(200, 20, 20, 255);
@@ -614,10 +614,13 @@ int main(int argc, char *argv[]) {
 
 						if(ipe_curl) {
 							ipe_res = curl_easy_perform(ipe_curl);
-							strcpy(ipe_char, ipe_writedata.buffer);
-							//and reset the buffer
-							ipe_writedata.buffer[0] = '\0';
-							ipe_writedata.size = 0;
+							if(ipe_res == CURLE_OK) {
+								strcpy(ipe_char, ipe_writedata.buffer);
+								//and reset the buffer
+								ipe_writedata.buffer[0] = '\0';
+								ipe_writedata.size = 0;
+							}
+							else strcpy(ipe_char, "no network");
 						}
 					}
 				} //end expensive
