@@ -53,7 +53,7 @@ divcol		" 80,170,240,255"
 # workspace name text colour when that workspace is visible
 viswscol	"140,200,255,255"
 # workspace name text colour when that workspace is not visible
-inviswscol	" 80, 80, 80,255"
+inviswscol	"120,120,120,255"
 
 # font configuration
 # format is <face>:<weight>:<size> where <weight> is either 'bold' or 'normal'
