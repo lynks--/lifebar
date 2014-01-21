@@ -2,11 +2,13 @@ good and bad colours
 good and bad thresholds (battery, signal strength, temperature)
 
 tray icons
+workspace icons/glyphs
 
 vertical nudge
-vertical font height positioning
 
 config module order and presence
+
+smooth inet speed reporting
 
 modules:
 	cpu usage
