@@ -5,17 +5,15 @@ lifebar
 
 NOTE: this readme contains lies. not everything here is implemented yet! :(
 
-ALSO NOTE: There might be a couple of issues at the moment running lifebar on 32 bit systems :(
+_Screenshot_
+
+![](http://88.198.68.167/images/lifebar_ss1.jpg)
 
 _Configuration_
 
 The file *lifebarrc.example* is well annotated and contains all the available
-configuration options. There are also example configurations and corresponding
-screenshots at *http://github.com/lynks--/lifebar*
-
-Configuration files should be saved/linked to *~/.lifebarrc* to be read by
-lifebar.
-
+configuration options. Configuration files should be saved/linked
+to *~/.lifebarrc* to be read by lifebar.
 
 _Features_
 
