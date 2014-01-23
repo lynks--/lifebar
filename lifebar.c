@@ -661,13 +661,22 @@ int main(int argc, char *argv[]) {
 							   mouse_x <
 									(ins->output->x + ins->output->width)) {
 
-								//iterate over workspace layout list
+								//handle click on workspaces
+								int max_wsx = 0;
+								//we have to calculate max_wsi separately,
+								//no other loops have a need to go to the end
+								uint32_t max_wsi = 0;
 								for(i = 0; i < MAX_WORKSPACES; i++) {
-
 									//zero length name indicates the list
 									//terminator
 									if(!strlen(ins->ws_layout->ws_name[i]))
 										break;
+
+									max_wsi = i;
+								}
+
+								for(i = 0; i <= max_wsi; i++) {
+									max_wsx = ins->ws_layout->x_max[i];
 
 									//is the click event inside this workspace
 									//name area
@@ -686,6 +695,44 @@ int main(int argc, char *argv[]) {
 											free_ipc_result(res);
 										}
 										break;
+									}
+								}
+
+								//now handle mouse wheel over workspaces
+								if(mouse_x < ins->output->x + max_wsx) {
+									if(mouse_button == 4 || mouse_button ==5) {
+										for(i = 0; i <= max_wsi; i++) {
+
+											if(ins->ws_layout->active[i]) {
+												//calculate the next index
+												//up or down by one
+												int next_wsi =
+													i + (mouse_button == 4 ?
+														-1 : 1);
+
+												//wrap the result (avoiding
+												//undefined % use in c)
+												if(next_wsi < 0)
+													next_wsi = max_wsi;
+												if(next_wsi > max_wsi)
+													next_wsi = 0;
+
+												//send the ipc request
+												char i3_payload[256];
+												sprintf(i3_payload,
+													"workspace %s", 
+													ins->ws_layout->
+														ws_name[next_wsi]);
+												char *res;
+												i3_ipc_send(&res, i3_sock,
+														COMMAND, i3_payload);
+												free_ipc_result(res);
+
+												//we have nothing else to do
+												break;
+											}
+
+										}
 									}
 								}
 
@@ -756,6 +803,11 @@ int main(int argc, char *argv[]) {
 									   ws_head->name);
 								ins->ws_layout->x_max[ws_index] =
 									tlpadding + conf->divpadding + 1;
+								if(strcmp(ws_head->visible, "true") == 0)
+									ins->ws_layout->active[ws_index] = 1;
+								else
+									ins->ws_layout->active[ws_index] = 0;
+
 								ws_index++;
 
 								//divider

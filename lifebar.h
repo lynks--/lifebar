@@ -125,6 +125,7 @@ struct i3_workspace {
 struct ws_layout {
 	char ws_name[MAX_WORKSPACES][MAX_WS_NAME_LENGTH];
 	uint32_t x_max[MAX_WORKSPACES];
+	char active[MAX_WORKSPACES];
 };
 
 struct time_layout {
