@@ -963,7 +963,7 @@ int main(int argc, char *argv[]) {
 
 						//draw the back buffer and send to the screen
 						XCopyArea(d, ins->bb, ins->w, ins->gc, 0, 0,
-							ins->output->width, conf->depth, 0, 0);
+								ins->output->width, conf->depth, 0, 0);
 						XFlush(d);
 
 						//next instance
