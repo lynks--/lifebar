@@ -34,6 +34,7 @@ int main(int argc, char *argv[]) {
 		conf->divpadding = 10;
 		conf->divwidth = 1;
 		conf->divstyle = GROOVE;
+		conf->wswrap = WSWRAP_OFF;
 		strcpy(conf->ifone, "eth0");
 		strcpy(conf->iftwo, "");
 		strcpy(conf->fsone, "/home");
@@ -146,6 +147,16 @@ int main(int argc, char *argv[]) {
 							else
 								fprintf(stderr,
 								  "%sbad value for config key 'divstyle':%s\n",
+								  BAD_MSG, value);
+						}
+						else if(strcmp(key, "wswrap") == 0) {
+							if(strcmp(value, "on") == 0)
+								conf->wswrap = WSWRAP_ON;
+							else if(strcmp(value, "off") == 0)
+								conf->wswrap = WSWRAP_OFF;
+							else
+								fprintf(stderr,
+								  "%sbad value for config key 'wswrap':%s\n",
 								  BAD_MSG, value);
 						}
 						else if(strcmp(key, "ifone") == 0)
@@ -315,6 +326,7 @@ int main(int argc, char *argv[]) {
 			for(i = 0; i < MAX_WORKSPACES; i++)
 				ins->ws_layout->ws_name[i][0] = '\0';
 			ins->time_layout = malloc(sizeof *ins->time_layout);
+			ins->max_wsx = 0;
 			instance_list = ins;
 
 			//create the window
@@ -447,9 +459,7 @@ int main(int argc, char *argv[]) {
 			output_list = output_list->next; 
 		}
 
-		//prepare the fonts
-		//TODO make fonts configurable
-
+		//TODO use the correct default font here
 		//measure the text y-coord
 		uint32_t textheight = 0;
 		cairo_text_extents_t extents;
@@ -662,7 +672,6 @@ int main(int argc, char *argv[]) {
 									(ins->output->x + ins->output->width)) {
 
 								//handle click on workspaces
-								int max_wsx = 0;
 								//we have to calculate max_wsi separately,
 								//no other loops have a need to go to the end
 								uint32_t max_wsi = 0;
@@ -672,12 +681,12 @@ int main(int argc, char *argv[]) {
 									if(!strlen(ins->ws_layout->ws_name[i]))
 										break;
 
+									//this is used for wrapping using the
+									//mouse wheel
 									max_wsi = i;
 								}
 
 								for(i = 0; i <= max_wsi; i++) {
-									max_wsx = ins->ws_layout->x_max[i];
-
 									//is the click event inside this workspace
 									//name area
 									if(mouse_x < ins->output->x +
@@ -699,7 +708,7 @@ int main(int argc, char *argv[]) {
 								}
 
 								//now handle mouse wheel over workspaces
-								if(mouse_x < ins->output->x + max_wsx) {
+								if(mouse_x < ins->output->x + ins->max_wsx) {
 									if(mouse_button == 4 || mouse_button ==5) {
 										for(i = 0; i <= max_wsi; i++) {
 
@@ -712,10 +721,20 @@ int main(int argc, char *argv[]) {
 
 												//wrap the result (avoiding
 												//undefined % use in c)
-												if(next_wsi < 0)
-													next_wsi = max_wsi;
-												if(next_wsi > max_wsi)
-													next_wsi = 0;
+												switch(conf->wswrap) {
+													case WSWRAP_ON:
+														if(next_wsi < 0)
+															next_wsi = max_wsi;
+														if(next_wsi > max_wsi)
+															next_wsi = 0;
+														break;
+													case WSWRAP_OFF:
+														if(next_wsi < 0)
+															next_wsi = 0;
+														if(next_wsi > max_wsi)
+															next_wsi = max_wsi;
+														break;
+												}
 
 												//send the ipc request
 												char i3_payload[256];
@@ -740,7 +759,7 @@ int main(int argc, char *argv[]) {
 								if(mouse_x >
 										ins->output->x +
 										ins->time_layout->x_min &&
-								   mouse_x <
+									mouse_x <
 										ins->output->x +
 										ins->time_layout->x_max) {
 
@@ -934,6 +953,11 @@ int main(int argc, char *argv[]) {
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);
 						}
+
+						//the final total-right-padding gives us the maximum
+						//x coord at which the mouse wheel is used to scroll
+						//through workspaces
+						ins->max_wsx = ins->output->width - trpadding;
 
 					// ========= finish this frame =========
 

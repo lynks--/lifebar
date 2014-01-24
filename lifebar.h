@@ -65,6 +65,10 @@
 #define LINE 0
 #define GROOVE 1
 
+//ws wrapping
+#define WSWRAP_ON 0
+#define WSWRAP_OFF 1
+
 //output message types
 #define BAD_MSG "[ \x1b[31m:(\x1b[0m ] "
 #define GOOD_MSG "[ \x1b[92m:)\x1b[0m ] "
@@ -140,6 +144,7 @@ struct instance {
 	cairo_surface_t *cairo_s_bb;	//cairo surface for the backbuffer
 	cairo_t *cairo;					//cairo context for the backbuffer
 	GC gc;							//graphics context
+	uint32_t max_wsx;				//max x coord for mouse wheel ws switching
 	struct i3_output *output;		//output info for this instance
 	struct ws_layout *ws_layout;	//store positions of ws dividers for clicks
 	struct time_layout *time_layout;//store position of time for mousewheel
@@ -169,6 +174,7 @@ struct config {
 	uint32_t divpadding;			//padding either side of divider lines
 	uint32_t divwidth;				//divider line width
 	uint32_t divstyle;				//divider line style (LINE or GROOVE)
+	uint32_t wswrap;				//whether wsmousewheel wraps WSWRAP_ON/OFF
 	char ifone[32];					//interface name, eg eth0
 	char iftwo[32];					//interface name, eg eth0
 	char fsone[32];					//fs location, eg /home

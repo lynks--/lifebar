@@ -36,6 +36,9 @@ kvpadding	6
 # divider style, valid options are 'line' and 'groove'
 divstyle	line
 
+# workspace mouse-wheel wrapping, valid options are 'on' and 'off
+wswrap		off
+
 # colour format is RED,GREEN,BLUE,ALPHA with values of 0-255
 # main background colour
 tintcol		" 20, 20, 20,160"
