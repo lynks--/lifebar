@@ -971,8 +971,8 @@ int main(int argc, char *argv[]) {
 
 				} //end instance iteration
 
-				//control fps
-				usleep(50000);
+				//control fps, 10fps is plenty
+				usleep(100000);
 
 		} //end main loop
 
