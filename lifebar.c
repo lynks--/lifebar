@@ -624,13 +624,20 @@ int main(int argc, char *argv[]) {
 
 						if(ipe_curl) {
 							ipe_res = curl_easy_perform(ipe_curl);
+
 							if(ipe_res == CURLE_OK) {
-								strcpy(ipe_char, ipe_writedata.buffer);
-								//and reset the buffer
-								ipe_writedata.buffer[0] = '\0';
-								ipe_writedata.size = 0;
+								//we check for the result format, an error
+								//page will typically contain html tags
+								if(strstr(ipe_writedata.buffer, "html") !=NULL)
+									strcpy(ipe_char, "ipecho.net error");
+								else
+									strcpy(ipe_char, ipe_writedata.buffer);
 							}
 							else strcpy(ipe_char, "no network");
+
+							//and reset the buffer
+							ipe_writedata.buffer[0] = '\0';
+							ipe_writedata.size = 0;
 						}
 					}
 				} //end expensive
