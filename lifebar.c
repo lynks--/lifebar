@@ -622,6 +622,7 @@ int main(int argc, char *argv[]) {
 					if(last_external + EXTERNAL_IP_TIME <= frame_time) {
 						last_external = frame_time;
 
+						//if curl init went ok (it always does)
 						if(ipe_curl) {
 							ipe_res = curl_easy_perform(ipe_curl);
 

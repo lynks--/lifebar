@@ -10,6 +10,8 @@ config module order and presence
 
 smooth inet speed reporting
 
+figure out why external_ip disappears sometimes
+
 modules:
 	cpu usage
 	ram usage
