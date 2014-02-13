@@ -514,6 +514,7 @@ int main(int argc, char *argv[]) {
 		curl_easy_setopt(ipe_curl, CURLOPT_WRITEFUNCTION, curl_writeback);
 		curl_easy_setopt(ipe_curl, CURLOPT_WRITEDATA, (void *)&ipe_writedata);
 		curl_easy_setopt(ipe_curl, CURLOPT_USERAGENT, "libcurl/lifebar");
+		curl_easy_setopt(ipe_curl, CURLOPT_CONNECTTIMEOUT, 5);
 		char *ipe_char = malloc(64);
 
 	// ========= start the main loop =========
