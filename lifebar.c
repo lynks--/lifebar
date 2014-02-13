@@ -494,10 +494,18 @@ int main(int argc, char *argv[]) {
 		struct ifaddrs *ifap = NULL;
 		struct ifaddrs *ifone = NULL;
 		struct ifaddrs *iftwo = NULL;
-		struct net_speed_info *ifone_speed = NULL;
-		struct net_speed_info *iftwo_speed = NULL;
-		struct net_speed_info *ifone_prev_speed = NULL;
-		struct net_speed_info *iftwo_prev_speed = NULL;
+		struct net_speed_info ifone_speed[NET_SPEED_AVERAGE];
+		struct net_speed_info iftwo_speed[NET_SPEED_AVERAGE];
+		uint32_t if_speed_index = 0;
+		//TODO we should prine these arrays with suitable values or ignore
+		//zero values in render_interface(), to prevent extreme values for
+		//the first few seconds
+		for(i = 1; i < NET_SPEED_AVERAGE; i++) {
+			ifone_speed[i].down_bytes = 0;
+			ifone_speed[i].up_bytes = 0;
+			iftwo_speed[i].down_bytes = 0;
+			iftwo_speed[i].up_bytes = 0;
+		}
 		int fsone_alive = 0;
 		int fstwo_alive = 0;
 		char wanip[128];
@@ -514,6 +522,7 @@ int main(int argc, char *argv[]) {
 		curl_easy_setopt(ipe_curl, CURLOPT_WRITEFUNCTION, curl_writeback);
 		curl_easy_setopt(ipe_curl, CURLOPT_WRITEDATA, (void *)&ipe_writedata);
 		curl_easy_setopt(ipe_curl, CURLOPT_USERAGENT, "libcurl/lifebar");
+		curl_easy_setopt(ipe_curl, CURLOPT_CONNECTTIMEOUT, 5);
 		char *ipe_char = malloc(64);
 
 	// ========= start the main loop =========
@@ -587,23 +596,13 @@ int main(int argc, char *argv[]) {
 					}
 
 					//read interface speed
-					if(ifone != NULL) {
-						//NOTE: rather than malloc and free, we should just
-						//iterate between two pointers here
-
-						free(ifone_prev_speed);
-						ifone_prev_speed = ifone_speed;
-
-						ifone_speed = malloc(sizeof *ifone_speed);
-						read_net_speed(conf->ifone, ifone_speed);
-					}
-					if(iftwo != NULL) {
-						free(iftwo_prev_speed);
-						iftwo_prev_speed = iftwo_speed;
-
-						iftwo_speed = malloc(sizeof *iftwo_speed);
-						read_net_speed(conf->iftwo, iftwo_speed);
-					}
+					if(ifone != NULL)
+						read_net_speed(conf->ifone,
+									   &(ifone_speed[if_speed_index]));
+					if(iftwo != NULL)
+						read_net_speed(conf->iftwo,
+									   &(iftwo_speed[if_speed_index]));
+					if_speed_index = (if_speed_index + 1) % NET_SPEED_AVERAGE;
 
 					//lookup hdd capacity information
 					fsone_alive = statvfs(conf->fsone, &fsone);
@@ -884,11 +883,11 @@ int main(int argc, char *argv[]) {
 										ins->output->width - trpadding, RIGHT);
 
 						//ifone
-						if(ifone != NULL && ifone_prev_speed != NULL) {
+						if(ifone != NULL) {
 							trpadding += render_interface(ins->cairo,
 											ins->output->width - trpadding,
 											textheight, ifone,
-											ifone_prev_speed, ifone_speed, 
+											ifone_speed, if_speed_index,
 											RIGHT);
 
 							//divider
@@ -897,11 +896,11 @@ int main(int argc, char *argv[]) {
 						}
 
 						//iftwo
-						if(iftwo != NULL && iftwo_prev_speed != NULL) {
+						if(iftwo != NULL) {
 							trpadding += render_interface(ins->cairo,
 											ins->output->width - trpadding,
 											textheight, iftwo,
-											iftwo_prev_speed, iftwo_speed,
+											iftwo_speed, if_speed_index,
 											RIGHT);
 
 							//divider

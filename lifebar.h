@@ -87,8 +87,10 @@
 //how often in seconds do we perform the expensive lookups
 //NOTE: currently this is used to decrement alarm, so it should stay at 1
 #define EXPENSIVE_TIME 1
-//ping our external ip every x seconds
+//ping our external ip every x seconds, 300 = 5 minutes
 #define EXTERNAL_IP_TIME 300
+//how many readings (1 per second) do we average net speed over
+#define NET_SPEED_AVERAGE 3
 
 struct batt_info {
 	uint32_t index;					//battery number, as in BAT0
@@ -251,7 +253,7 @@ int render_alarm(cairo_t *, uint32_t, int, int, int);
 int render_date(cairo_t *, int, int, int);
 
 int render_interface(cairo_t *, int, int, struct ifaddrs *,
-			struct net_speed_info *, struct net_speed_info *, int);
+			struct net_speed_info[], uint32_t, int);
 
 int render_filesystem(cairo_t *, int, int, struct statvfs *, char *, int);
 

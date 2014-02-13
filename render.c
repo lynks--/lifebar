@@ -47,7 +47,7 @@ int render_divider(cairo_t *cairo, int x, int d) {
 }
 
 int render_interface(cairo_t *c, int x, int y, struct ifaddrs *a,
-			struct net_speed_info *p_spd, struct net_speed_info *spd, int d) {
+						struct net_speed_info spd[], uint32_t spdi, int d) {
 
 	char k_string[32];
 	char v_string[64];
@@ -55,7 +55,6 @@ int render_interface(cairo_t *c, int x, int y, struct ifaddrs *a,
 
 	//if this interface is up
 	if(a->ifa_flags & IFF_UP) {
-
 		//if this is an ipv4 or ipv6 address
 		if((a->ifa_addr->sa_family == AF_INET) ||
 		   (a->ifa_addr->sa_family == AF_INET6)) {
@@ -65,11 +64,29 @@ int render_interface(cairo_t *c, int x, int y, struct ifaddrs *a,
 			char readable[256];
 			inet_ntop(addr->sin_family, &(addr->sin_addr), readable, 256);
 
-			//calculate speed since last tick
-			float down = (float)(spd->down_bytes - p_spd->down_bytes) /
-									(float)(EXPENSIVE_TIME * 1024);
-			float up = (float)(spd->up_bytes - p_spd->up_bytes) /
-									(float)(EXPENSIVE_TIME * 1024);
+			//calculate speed
+			//NOTE: we are passed the NEXT index to be written to, so the
+			//newest index availiable is -1, and the oldest is spdi.
+			int new_index = spdi - 1;
+			if(new_index < 0) new_index = NET_SPEED_AVERAGE - 1;
+			int old_index = spdi;
+			//this loop ensures that we get no extreme values during the first
+			//few seconds of display. it finds the oldest value that has
+			//actually been written to, avoiding the zero values.
+			while(spd[old_index].down_bytes == 0)
+				old_index = (old_index + 1) % NET_SPEED_AVERAGE;
+			float down = (float)
+							(spd[new_index].down_bytes -
+								spd[old_index].down_bytes)
+						 /
+						 (float)
+							(EXPENSIVE_TIME * NET_SPEED_AVERAGE * 1024);
+			float up = (float)
+							(spd[new_index].up_bytes -
+								spd[old_index].up_bytes)
+						 /
+						 (float)
+							(EXPENSIVE_TIME * NET_SPEED_AVERAGE * 1024);
 
 			//build the string
 			sprintf(v_string, "%s [\xe2\x86\x93 %.2fKiB/s] [\xe2\x86\x91 %.2fKiB/s]",
