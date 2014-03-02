@@ -69,4 +69,6 @@ wsfont		"deja vu sans:normal:10"
 # presence and arrangement of modules TODO
 # layout all workspaces / batt0 | therm0 | fsone | extip | ifone | date | time
 
+modules		"bat0 therm0 fsone fstwo ifone iftwo date time"
+
 # vim: syntax=sh softtabstop=8 tabstop=8:

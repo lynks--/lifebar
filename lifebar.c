@@ -107,6 +107,25 @@ int main(int argc, char *argv[]) {
 									"%sbad value for config key 'depth':%s\n",
 									BAD_MSG, value);
 						}
+						else if(strcmp(key, "modules") == 0) {
+							char *part = NULL;
+							struct module *head = NULL;
+							struct module *curr = NULL;
+
+							head = NULL;
+							part = strtok(value, " ");
+							while(part != NULL) {
+								curr = malloc(sizeof(struct module));
+								strcpy(curr->name, part);
+      					curr->next  = head;
+      					head = curr;
+								part = strtok(NULL, " ");
+							}
+							curr = head;
+							conf->modules = head;
+
+							check_module_list(conf->modules);
+						}
 						else if(strcmp(key, "datefmt") == 0)
 							strcpy(conf->datefmt, value);
 						else if(strcmp(key, "timefmt") == 0)
@@ -849,8 +868,9 @@ int main(int argc, char *argv[]) {
 						ins->ws_layout->ws_name[ws_index][0] = '\0';
 
 					// ========= right side =========
-
+					
 						uint32_t trpadding = conf->rpadding;
+						char* module = NULL;
 
 						//time
 						ins->time_layout->x_max =
@@ -963,6 +983,8 @@ int main(int argc, char *argv[]) {
 							trpadding += render_divider(ins->cairo,
 									ins->output->width - trpadding, RIGHT);
 						}
+
+						
 
 						//the final total-right-padding gives us the maximum
 						//x coord at which the mouse wheel is used to scroll
