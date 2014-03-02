@@ -72,6 +72,12 @@ void read_acpi_battery(int b, struct batt_info *bi) {
 	long int energy_full = 0;
 	sprintf(path, "%s/BAT%d/energy_full", PS_PATH, b);
 	f = fopen(path, "r");
+	
+	if(f == NULL) {
+		sprintf(path, "%s/BAT%d/charge_full", PS_PATH, b);
+		f = fopen(path, "r");
+	}
+  
 	if(f == NULL || fgets(energy_full_s, 32, f) == NULL) {
 		fprintf(stderr, "%scould not read battery energy max: '%s'\n",
 				BAD_MSG, path);
@@ -84,6 +90,12 @@ void read_acpi_battery(int b, struct batt_info *bi) {
 	long int energy_now = 0;
 	sprintf(path, "%s/BAT%d/energy_now", PS_PATH, b);
 	f = fopen(path, "r");
+  
+	if(f == NULL) {
+		sprintf(path, "%s/BAT%d/charge_now", PS_PATH, b);
+		f = fopen(path, "r");
+	}  
+
 	if(f == NULL || fgets(energy_now_s, 32, f) == NULL) {
 		fprintf(stderr, "%scould not read battery energy now: '%s'\n",
 				BAD_MSG, path);
