@@ -635,9 +635,12 @@ int main(int argc, char *argv[]) {
 							}
 							else strcpy(ipe_char, "no network");
 
-							//and reset the buffer
-							ipe_writedata.buffer[0] = '\0';
-							ipe_writedata.size = 0;
+							//and reset the buffer, unless it has
+							//not yet been populated
+							if(ipe_writedata.buffer != NULL) {
+								ipe_writedata.buffer[0] = '\0';
+								ipe_writedata.size = 0;
+							}
 						}
 					}
 				} //end expensive
