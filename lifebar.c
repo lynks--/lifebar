@@ -107,6 +107,25 @@ int main(int argc, char *argv[]) {
 									"%sbad value for config key 'depth':%s\n",
 									BAD_MSG, value);
 						}
+						else if(strcmp(key, "modules") == 0) {
+							char *part = NULL;
+							struct module *head = NULL;
+							struct module *curr = NULL;
+
+							head = NULL;
+							part = strtok(value, " ");
+							while(part != NULL) {
+								curr = malloc(sizeof(struct module));
+								strcpy(curr->name, part);
+      					curr->next  = head;
+      					head = curr;
+								part = strtok(NULL, " ");
+							}
+							curr = head;
+							conf->modules = head;
+
+							check_module_list(conf->modules);
+						}
 						else if(strcmp(key, "datefmt") == 0)
 							strcpy(conf->datefmt, value);
 						else if(strcmp(key, "timefmt") == 0)
@@ -849,119 +868,158 @@ int main(int argc, char *argv[]) {
 						ins->ws_layout->ws_name[ws_index][0] = '\0';
 
 					// ========= right side =========
-
+					
 						uint32_t trpadding = conf->rpadding;
+						char* module = NULL;
 
-						//time
-						ins->time_layout->x_max =
-							ins->output->width - trpadding;
-						trpadding += render_time(ins->cairo,
+						struct module *ptr;
+						ptr = conf->modules;
+
+						while(ptr != NULL) {
+							module = ptr->name;
+
+							if(strcmp(module, "time") == 0) {
+								//time
+								ins->time_layout->x_max =
+										ins->output->width - trpadding;
+								trpadding += render_time(ins->cairo,
 										ins->output->width - trpadding,
 										textheight, RIGHT);
 
-						//alarm
-						if(alarm_s > 0) {
-							//divider
-							trpadding += render_divider(ins->cairo,
-										ins->output->width - trpadding, RIGHT);
+								//alarm
+								if(alarm_s > 0) {
+									//divider
+									trpadding += render_divider(ins->cairo,
+											ins->output->width - trpadding, RIGHT);
 
-							trpadding += render_alarm(ins->cairo, alarm_s,
+									trpadding += render_alarm(ins->cairo, alarm_s,
+											ins->output->width - trpadding,
+											textheight, RIGHT);
+								}
+
+								ins->time_layout->x_min =
+								ins->output->width - trpadding;
+
+								if(ptr->next != NULL) { 
+									//divider
+									trpadding += render_divider(ins->cairo,
+											ins->output->width - trpadding, RIGHT);
+								}
+							} else if(strcmp(module, "date") == 0) {
+								
+								//date
+								trpadding += render_date(ins->cairo,
 										ins->output->width - trpadding,
 										textheight, RIGHT);
-						}
-						ins->time_layout->x_min =
-							ins->output->width - trpadding;
 
-						//divider
-						trpadding += render_divider(ins->cairo,
-										ins->output->width - trpadding, RIGHT);
-
-						//date
-						trpadding += render_date(ins->cairo,
-										ins->output->width - trpadding,
-										textheight, RIGHT);
-
-						//divider
-						trpadding += render_divider(ins->cairo,
-										ins->output->width - trpadding, RIGHT);
-
-						//ifone
-						if(ifone != NULL) {
-							trpadding += render_interface(ins->cairo,
+								if(ptr->next != NULL) {
+									//divider
+									trpadding += render_divider(ins->cairo,
+											ins->output->width - trpadding, RIGHT);
+								}
+							} else if(strcmp(module, "ifone") == 0) {
+								//ifone
+								if(ifone != NULL) {
+									trpadding += render_interface(ins->cairo,
 											ins->output->width - trpadding,
 											textheight, ifone,
 											ifone_speed, if_speed_index,
 											RIGHT);
 
-							//divider
-							trpadding += render_divider(ins->cairo,
-										ins->output->width - trpadding, RIGHT);
-						}
-
-						//iftwo
-						if(iftwo != NULL) {
-							trpadding += render_interface(ins->cairo,
+									if(ptr->next != NULL) {
+										//divider
+										trpadding += render_divider(ins->cairo,
+												ins->output->width - trpadding, RIGHT);
+									}
+								}
+							} else if(strcmp(module, "iftwo") == 0) {
+								//iftwo
+								if(iftwo != NULL) {
+									trpadding += render_interface(ins->cairo,
 											ins->output->width - trpadding,
 											textheight, iftwo,
 											iftwo_speed, if_speed_index,
 											RIGHT);
 
-							//divider
-							trpadding += render_divider(ins->cairo,
-										ins->output->width - trpadding, RIGHT);
-						}
-
-						//wanip
-						if(strlen(ipe_char) > 0) {
-							trpadding += render_keyvalue(ins->cairo,
+									if(ptr->next != NULL) {
+									//divider
+									trpadding += render_divider(ins->cairo,
+											ins->output->width - trpadding, RIGHT);
+									}
+								}
+							} else if(strcmp(module, "extip") == 0) {
+								//extip
+								if(strlen(ipe_char) > 0) {
+									trpadding += render_keyvalue(ins->cairo,
 											ins->output->width - trpadding,
 											textheight, "external_ip",
 											ipe_char, RIGHT);
 
-							//divider
-							trpadding += render_divider(ins->cairo,
+									if(ptr->next != NULL) {
+										//divider
+										trpadding += render_divider(ins->cairo,
+												ins->output->width - trpadding, RIGHT);
+									}
+								}
+							} else if(strcmp(module, "fsone") == 0) {
+								//fsone
+								if(fsone_alive == 0) {
+									trpadding += render_filesystem(ins->cairo,
+											ins->output->width - trpadding,
+											textheight, &fsone, conf->fsone, RIGHT);
+								
+									if(ptr->next != NULL) {
+										//divider
+										trpadding += render_divider(ins->cairo,
+												ins->output->width - trpadding, RIGHT);
+									}
+								}
+							} else if(strcmp(module, "fstwo") == 0) {
+								//fstwo
+								if(fstwo_alive == 0) {
+									trpadding += render_filesystem(ins->cairo,
+											ins->output->width - trpadding,
+											textheight, &fstwo, conf->fstwo, RIGHT);
+							
+									if(ptr->next != NULL) {
+										//divider
+										trpadding += render_divider(ins->cairo,
 										ins->output->width - trpadding, RIGHT);
-						}
-
-
-						//fsone
-						if(fsone_alive == 0) {
-							trpadding += render_filesystem(ins->cairo,
-									ins->output->width - trpadding,
-									textheight, &fsone, conf->fsone, RIGHT);
-							//divider
-							trpadding += render_divider(ins->cairo,
-									ins->output->width - trpadding, RIGHT);
-						}
-
-						//fstwo
-						if(fstwo_alive == 0) {
-							trpadding += render_filesystem(ins->cairo,
-									ins->output->width - trpadding,
-									textheight, &fstwo, conf->fstwo, RIGHT);
-							//divider
-							trpadding += render_divider(ins->cairo,
-									ins->output->width - trpadding, RIGHT);
-						}
-
-						//batteries
-						for(i = 0; i < batt_count; i++) {
-							trpadding += render_battery(ins->cairo,
-									ins->output->width - trpadding,
-									textheight, batteries[i], RIGHT);
-							//divider
-							trpadding += render_divider(ins->cairo,
-									ins->output->width - trpadding, RIGHT);
-						}
-
-						//thermal
-						for(i = 0; i < thermal_count; i++) {
-							trpadding += render_thermal(ins->cairo,
-									ins->output->width - trpadding,
-									textheight, thermals[i], RIGHT);
-							//divider
-							trpadding += render_divider(ins->cairo,
-									ins->output->width - trpadding, RIGHT);
+									}
+								}
+							} else if(strncmp("bat", module, strlen("bat")) == 0) {
+								int index = atoi(module+strlen("bat"));
+								for(i = 0; i < batt_count; i++) {
+									if(batteries[i]->index == index) {
+										trpadding += render_battery(ins->cairo,
+												ins->output->width - trpadding,
+												textheight, batteries[i], RIGHT);
+							
+										if(ptr->next != NULL) {
+											//divider
+											trpadding += render_divider(ins->cairo,
+													ins->output->width - trpadding, RIGHT);
+										}
+									}
+								}
+							} else if(strncmp("therm", module, strlen("therm")) == 0) {
+								int index = atoi(module+strlen("therm"));
+								for(i = 0; i < thermal_count; i++) {
+									if(thermals[i]->index == index) {
+										trpadding += render_thermal(ins->cairo,
+												ins->output->width - trpadding,
+												textheight, thermals[i], RIGHT);
+							
+										if(ptr->next != NULL) {
+											//divider
+											trpadding += render_divider(ins->cairo,
+													ins->output->width - trpadding, RIGHT);
+										}
+									}
+								}
+							}
+							// next module
+							ptr = ptr->next;
 						}
 
 						//the final total-right-padding gives us the maximum

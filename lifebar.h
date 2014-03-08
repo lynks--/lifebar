@@ -92,6 +92,15 @@
 //how many readings (1 per second) do we average net speed over
 #define NET_SPEED_AVERAGE 3
 
+// the valid configuration options for the config key 'modules' which does
+// not have any suffix.
+static char **valid_static = (char *[]){"fsone", "fstwo", "extip", "ifone", 
+				"iftwo", "date", "time", NULL};
+
+// the valid configuration options for the config key 'modules' which does
+// have a suffix like bat0 or therm1.
+static char **valid_suffix = (char *[]){"bat", "therm", NULL};
+
 struct batt_info {
 	uint32_t index;					//battery number, as in BAT0
 	uint32_t percent;				//how full the battery is 0-100 inc
@@ -137,6 +146,11 @@ struct ws_layout {
 struct time_layout {
 	uint32_t x_min;
 	uint32_t x_max;
+};
+
+struct module {
+	char name[64];
+	struct module *next;
 };
 
 struct instance {
@@ -204,9 +218,18 @@ struct config {
 	double timefontsize;			//time text size
 	cairo_font_face_t *wsfont;		//workspace text font
 	double wsfontsize;				//workspace text size
+	struct module *modules;   // the modules in appropriate order
 };
 
 extern struct config *conf;
+
+void check_module_list(struct module *);
+
+int valid_module_static(char *, char **);
+
+int valid_module_suffix(char *, char **);
+
+int get_module_suffix(char *, char **);
 
 struct colour *prepare_colour(int, int, int, int);
 
