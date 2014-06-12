@@ -65,7 +65,11 @@ int main(int argc, char *argv[]) {
 
 		//now overwrite the defaults with any configured values
 		char *confpath = malloc(1024);
-		sprintf(confpath, "%s/.lifebarrc", getenv("HOME"));
+		if (argv[1]) {
+			sprintf(confpath, "%s", argv[1]);
+		} else {
+			sprintf(confpath, "%s/.lifebarrc", getenv("HOME"));
+		}
 		FILE *cf = fopen(confpath, "r");
 		if(cf != NULL) {
 			printf("%susing config file: '~/.lifebarrc'\n", GOOD_MSG);
@@ -255,8 +259,8 @@ int main(int argc, char *argv[]) {
 		else {
 			//in the absence of a config file we use defaults
 			fprintf(stderr,
-					"%sno config file '~/.lifebarrc' found, using defaults\n",
-				   BAD_MSG);
+					"%sno config file '%s' found, using defaults\n",
+				   BAD_MSG, confpath);
 		}
 
 	// ========= open the connection to i3wm via unix domain sockets =========
