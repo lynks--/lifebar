@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 		}
 		FILE *cf = fopen(confpath, "r");
 		if(cf != NULL) {
-			printf("%susing config file: '~/.lifebarrc'\n", GOOD_MSG);
+			printf("%susing config file: '%s'\n", GOOD_MSG, confpath);
 			char line[1024];
 			char key[128];
 			char value[1024];
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
 									"%sbad value for config key 'depth':%s\n",
 									BAD_MSG, value);
 						}
-						else if(strcmp(key, "modules") == 0) {
+						else if(strcmp(key, "rmodules") == 0) {
 							char *part = NULL;
 							struct module *head = NULL;
 							struct module *curr = NULL;
@@ -121,14 +121,33 @@ int main(int argc, char *argv[]) {
 							while(part != NULL) {
 								curr = malloc(sizeof(struct module));
 								strcpy(curr->name, part);
-      					curr->next  = head;
-      					head = curr;
+								curr->next  = head;
+								head = curr;
 								part = strtok(NULL, " ");
 							}
 							curr = head;
-							conf->modules = head;
+							conf->rmodules = head;
 
-							check_module_list(conf->modules);
+							check_module_list(conf->rmodules);
+						}
+						else if(strcmp(key, "lmodules") == 0) {
+							char *part = NULL;
+							struct module *head = NULL;
+							struct module *curr = NULL;
+
+							head = NULL;
+							part = strtok(value, " ");
+							while(part != NULL) {
+								curr = malloc(sizeof(struct module));
+								strcpy(curr->name, part);
+								curr->next  = head;
+								head = curr;
+								part = strtok(NULL, " ");
+							}
+							curr = head;
+							conf->lmodules = head;
+
+							check_module_list(conf->lmodules);
 						}
 						else if(strcmp(key, "datefmt") == 0)
 							strcpy(conf->datefmt, value);
@@ -838,46 +857,60 @@ int main(int argc, char *argv[]) {
 					// ========= left side =========
 
 						uint32_t tlpadding = conf->lpadding;
+						char* module = NULL;
 
-						//workspaces
-						struct i3_workspace *ws_head = workspaces_list;
-						int ws_index = 0;
-						while(ws_head != NULL) {
-							//is this workspace on my output?
-							if(!strcmp(ws_head->output, ins->output->name)) {
-								//draw the text
-								tlpadding +=
-									render_workspace(ins->cairo, tlpadding,
-													textheight, ws_head, LEFT);
+						struct module *ptr;
+						ptr = conf->lmodules;
 
-								//store this x max for future click events
-								strcpy(ins->ws_layout->ws_name[ws_index],
-									   ws_head->name);
-								ins->ws_layout->x_max[ws_index] =
-									tlpadding + conf->divpadding + 1;
-								if(strcmp(ws_head->visible, "true") == 0)
-									ins->ws_layout->active[ws_index] = 1;
-								else
-									ins->ws_layout->active[ws_index] = 0;
+						while(ptr != NULL) {
+							module = ptr->name;
 
-								ws_index++;
-
-								//divider
-								tlpadding += render_divider(ins->cairo,
-															tlpadding, LEFT);
+							if(strcmp(module, "ws") == 0) {
+								//workspaces
+								struct i3_workspace *ws_head = workspaces_list;
+								int ws_index = 0;
+								while(ws_head != NULL) {
+									//is this workspace on my output?
+									if(!strcmp(ws_head->output, ins->output->name)) {
+										//draw the text
+										tlpadding +=
+											render_workspace(ins->cairo, tlpadding,
+															textheight, ws_head, LEFT);
+	
+										//store this x max for future click events
+										strcpy(ins->ws_layout->ws_name[ws_index],
+									   		ws_head->name);
+										ins->ws_layout->x_max[ws_index] =
+											tlpadding + conf->divpadding + 1;
+										if(strcmp(ws_head->visible, "true") == 0)
+											ins->ws_layout->active[ws_index] = 1;
+										else
+										ins->ws_layout->active[ws_index] = 0;
+	
+										ws_index++;
+	
+										//divider
+										tlpadding += render_divider(ins->cairo,
+																tlpadding, LEFT);
+									}
+									ws_head = ws_head->next;
+								}
+								//cap the workspace layout for this frame
+								ins->ws_layout->ws_name[ws_index][0] = '\0';
 							}
-							ws_head = ws_head->next;
+						
+							// next module
+							ptr = ptr->next;
 						}
-						//cap the workspace layout for this frame
-						ins->ws_layout->ws_name[ws_index][0] = '\0';
 
 					// ========= right side =========
 					
 						uint32_t trpadding = conf->rpadding;
-						char* module = NULL;
+						// char* module = NULL;
+						module = NULL;
 
-						struct module *ptr;
-						ptr = conf->modules;
+						// struct module *ptr;
+						ptr = conf->rmodules;
 
 						while(ptr != NULL) {
 							module = ptr->name;
