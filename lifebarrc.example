@@ -63,11 +63,8 @@ inviswscol	"120,120,120,255"
 keyfont		"deja vu sans:normal:10"
 valfont		"deja vu sans:normal:10"
 datefont	"deja vu sans:normal:10"
-timefont	"deja vu sans:normal:10"
+timefont	"deja vu sans:bold:10"
 wsfont		"deja vu sans:normal:10"
-
-# presence and arrangement of modules TODO
-# layout all workspaces / batt0 | therm0 | fsone | extip | ifone | date | time
 
 modules		"bat0 therm0 fsone fstwo ifone iftwo date time"
 

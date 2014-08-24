@@ -647,10 +647,15 @@ int main(int argc, char *argv[]) {
 							if(ipe_res == CURLE_OK) {
 								//we check for the result format, an error
 								//page will typically contain html tags
-								if(strstr(ipe_writedata.buffer, "html") !=NULL)
-									strcpy(ipe_char, "ipecho.net error");
-								else
-									strcpy(ipe_char, ipe_writedata.buffer);
+								if(ipe_writedata.buffer != NULL) {
+									if(strstr(ipe_writedata.buffer, "html") != NULL)
+										strcpy(ipe_char, "ipecho.net error");
+									else {
+										strncpy(ipe_char, ipe_writedata.buffer, 64);
+										*(ipe_char + 63) = '\0';
+									}
+								}
+								else strcpy(ipe_char, "bad network read");
 							}
 							else strcpy(ipe_char, "no network");
 
