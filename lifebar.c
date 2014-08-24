@@ -516,7 +516,7 @@ int main(int argc, char *argv[]) {
 		struct net_speed_info ifone_speed[NET_SPEED_AVERAGE];
 		struct net_speed_info iftwo_speed[NET_SPEED_AVERAGE];
 		uint32_t if_speed_index = 0;
-		//TODO we should prine these arrays with suitable values or ignore
+		//TODO we should print these arrays with suitable values or ignore
 		//zero values in render_interface(), to prevent extreme values for
 		//the first few seconds
 		for(i = 1; i < NET_SPEED_AVERAGE; i++) {
