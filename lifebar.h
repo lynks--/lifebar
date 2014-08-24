@@ -218,7 +218,9 @@ struct config {
 	double timefontsize;			//time text size
 	cairo_font_face_t *wsfont;		//workspace text font
 	double wsfontsize;				//workspace text size
-	struct module *modules;   // the modules in appropriate order
+	struct module *modules;   // modules (test)
+	struct module *rmodules;   // modules on right side, in appropriate order
+	struct module *lmodules;   // modules on left side, in appropriate order
 };
 
 extern struct config *conf;
