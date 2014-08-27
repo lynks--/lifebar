@@ -64,8 +64,8 @@ void read_acpi_battery(int b, struct batt_info *bi) {
 			case 'F': bi->status = FULL; break;
 			default: bi->status = UNKNOWN;
 		}
+        fclose(f);
 	}
-	fclose(f);
 
 	//energy when full
 	char energy_full_s[32];
@@ -82,8 +82,10 @@ void read_acpi_battery(int b, struct batt_info *bi) {
 		fprintf(stderr, "%scould not read battery energy max: '%s'\n",
 				BAD_MSG, path);
 	}
-	else energy_full = strtol(energy_full_s, NULL, 10);
-	fclose(f);
+	else {
+        energy_full = strtol(energy_full_s, NULL, 10);
+        fclose(f);
+    }
 
 	//energy now
 	char energy_now_s[32];
@@ -100,8 +102,10 @@ void read_acpi_battery(int b, struct batt_info *bi) {
 		fprintf(stderr, "%scould not read battery energy now: '%s'\n",
 				BAD_MSG, path);
 	}
-	else energy_now = strtol(energy_now_s, NULL, 10);
-	fclose(f);
+	else {
+        energy_now = strtol(energy_now_s, NULL, 10);
+        fclose(f);
+    }
 
 	bi->percent = (int)(energy_now * 100 / (double)energy_full);
 }
@@ -123,8 +127,10 @@ void read_acpi_thermal(int t, struct thermal_info *therm) {
 		fprintf(stderr, "%scould not read thermal status: '%s'\n",
 				BAD_MSG, path);
 	}
-	else temp = strtol(temp_s, NULL, 10);
-	fclose(f);
+	else {
+        temp = strtol(temp_s, NULL, 10);
+        fclose(f);
+    }
 
 	therm->temp_c = temp / 1000;
 }
@@ -141,8 +147,10 @@ void read_net_speed(char *ifname, struct net_speed_info *net) {
 		fprintf(stderr, "%scould not read interface speed: '%s'\n",
 				BAD_MSG, path);
 	}
-	else net->down_bytes = strtol(rxb_s, NULL, 10);
-	fclose(f);
+	else {
+        net->down_bytes = strtol(rxb_s, NULL, 10);
+        fclose(f);
+    }
 
 	//upload
 	char txb_s[32];
@@ -152,6 +160,8 @@ void read_net_speed(char *ifname, struct net_speed_info *net) {
 		fprintf(stderr, "%scould not read interface speed: '%s'\n",
 				BAD_MSG, path);
 	}
-	else net->up_bytes = strtol(txb_s, NULL, 10);
-	fclose(f);
+	else {
+        net->up_bytes = strtol(txb_s, NULL, 10);
+        fclose(f);
+    }
 }
