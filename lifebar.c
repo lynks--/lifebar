@@ -62,6 +62,7 @@ int main(int argc, char *argv[]) {
 		conf->timefontsize = default_font_size;
 		conf->wsfont = default_font;
 		conf->wsfontsize = default_font_size;
+		conf->batt_alarm = 10;
 
 		//now overwrite the defaults with any configured values
 		char *confpath = malloc(1024);
@@ -243,6 +244,13 @@ int main(int argc, char *argv[]) {
 							parse_config_font("timefont", value);
 						else if(strcmp(key, "wsfont") == 0)
 							parse_config_font("wsfont", value);
+						else if(strcmp(key, "batt_alarm") == 0) {
+							int x = atoi(value);
+							if(x > 0) conf->batt_alarm = x;
+							else fprintf(stderr,
+								"%sbad calue for config key 'batt_alarm':%s\n",
+								BAD_MSG, value);
+						}
 					}
 					else {
 						fprintf(stderr, "%serror parsing config line: %s\n",
@@ -827,9 +835,19 @@ int main(int argc, char *argv[]) {
 							cairo_paint_with_alpha(ins->cairo, 1.0);
 						}
 						
-						//we overlay the alarm flash if required
+						//we overlay the alarm flash or when the only
+						//battery is discharging and low
 						if(frame_time < alarm_activate + 7) {
 							if((frame_time - alarm_activate + 1) % 2) {
+								set_cairo_source_colour(ins->cairo,
+														conf->alarmtintcol);
+								cairo_paint(ins->cairo);
+							}
+						}
+						else if(batt_count == 1 &&
+								batteries[0]->status == DISCHARGING &&
+								batteries[0]->percent < conf->batt_alarm) {
+							if(frame_time % 2) {
 								set_cairo_source_colour(ins->cairo,
 														conf->alarmtintcol);
 								cairo_paint(ins->cairo);
@@ -993,7 +1011,8 @@ int main(int argc, char *argv[]) {
 									}
 								}
 							} else if(strncmp("bat", module, strlen("bat")) == 0) {
-								int index = atoi(module+strlen("bat"));
+								// select which battery the config calls for;
+								int index = atoi(module + strlen("bat"));
 								for(i = 0; i < batt_count; i++) {
 									if(batteries[i]->index == index) {
 										trpadding += render_battery(ins->cairo,

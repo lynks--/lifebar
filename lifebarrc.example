@@ -21,6 +21,9 @@ fstwo		/
 # alarm time increment when mouse-wheeling over the time, in seconds
 alarminc	60
 
+# below what percentage can a discharging battery cause alarm flashing
+batt_alarm	10
+
 # time and date formats, see `man strftime`
 timefmt		"%H:%M"
 datefmt		"%A %e %B %Y"
