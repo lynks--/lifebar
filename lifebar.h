@@ -220,6 +220,7 @@ struct config {
 	double wsfontsize;				//workspace text size
 	struct module *modules;			//the modules in appropriate order
 	uint32_t batt_alarm;			//batt percentage for alarm
+	uint32_t external;				//whether or not to make external ip calls
 };
 
 extern struct config *conf;

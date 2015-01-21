@@ -63,6 +63,7 @@ int main(int argc, char *argv[]) {
 		conf->wsfont = default_font;
 		conf->wsfontsize = default_font_size;
 		conf->batt_alarm = 10;
+		conf->external = 1; // true by default
 
 		//now overwrite the defaults with any configured values
 		char *confpath = malloc(1024);
@@ -248,7 +249,16 @@ int main(int argc, char *argv[]) {
 							int x = atoi(value);
 							if(x > 0) conf->batt_alarm = x;
 							else fprintf(stderr,
-								"%sbad calue for config key 'batt_alarm':%s\n",
+								"%sbad value for config key 'batt_alarm':%s\n",
+								BAD_MSG, value);
+						}
+						else if(strcmp(key, "external") == 0) {
+							if(strcmp(value, "true") == 0)
+								conf->external = 1;
+							else if(strcmp(value, "false") == 0)
+								conf->external = 0;
+							else fprintf(stderr,
+								"%sbad value for config key 'external':%s\n",
 								BAD_MSG, value);
 						}
 					}
@@ -649,7 +659,7 @@ int main(int argc, char *argv[]) {
 						last_external = frame_time;
 
 						//if curl init went ok (it always does)
-						if(ipe_curl) {
+						if(ipe_curl && conf->external) {
 							ipe_res = curl_easy_perform(ipe_curl);
 
 							if(ipe_res == CURLE_OK) {
@@ -674,6 +684,7 @@ int main(int argc, char *argv[]) {
 								ipe_writedata.size = 0;
 							}
 						}
+						else strcpy(ipe_char, "curl disabled");
 					}
 				} //end expensive
 

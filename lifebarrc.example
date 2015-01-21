@@ -69,6 +69,10 @@ datefont	"deja vu sans:normal:10"
 timefont	"deja vu sans:bold:10"
 wsfont		"deja vu sans:normal:10"
 
+# external ip lookup
+# set to false if you have no connection, or if ipecho.net appears unreachable
+external	true
+
 modules		"bat0 therm0 fsone fstwo ifone iftwo date time"
 
 # vim: syntax=sh softtabstop=8 tabstop=8:
