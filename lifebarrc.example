@@ -73,6 +73,18 @@ wsfont		"deja vu sans:normal:10"
 # set to false if you have no connection, or if ipecho.net appears unreachable
 external	true
 
+# select the order and presence of lifebar modules, valid entries include:
+# fsone		filesystem path and free space
+# fstwo		filesystem path and free space
+# extip		external ip lookup
+# ifone		network interface status
+# iftwo		network interface status
+# date		local date
+# time		local time
+# uptime	os uptime
+# batX		battery status for battery X
+# thermX	temperature status for thermometer X
+# NOTE: X may be 0 or 1 indexed depending on your system.
 modules		"bat0 therm0 fsone fstwo ifone iftwo date time"
 
 # vim: syntax=sh softtabstop=8 tabstop=8:
