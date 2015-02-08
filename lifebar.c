@@ -119,8 +119,8 @@ int main(int argc, char *argv[]) {
 							while(part != NULL) {
 								curr = malloc(sizeof(struct module));
 								strcpy(curr->name, part);
-      					curr->next  = head;
-      					head = curr;
+								curr->next  = head;
+								head = curr;
 								part = strtok(NULL, " ");
 							}
 							curr = head;
@@ -547,6 +547,7 @@ int main(int argc, char *argv[]) {
 		int fstwo_alive = 0;
 		char wanip[128];
 		uint32_t alarm_s = 0; //time to alarm, in seconds
+		struct sysinfo sinfo;	//sysinfo container, used for uptime
 
 		//ready the curl handle for external ip lookup
 		CURL *ipe_curl;
@@ -693,6 +694,9 @@ int main(int argc, char *argv[]) {
 				//query i3 for workspace information
 				free_workspaces_list(workspaces_list);
 				workspaces_list = get_i3_workspaces(i3_sock);
+				
+				//grab the latest sysinfo struct
+				sysinfo(&sinfo);
 
 				//check the event buffer for incoming events
 				int mouse_clicked = 0;
@@ -940,7 +944,6 @@ int main(int argc, char *argv[]) {
 											ins->output->width - trpadding, RIGHT);
 								}
 							} else if(strcmp(module, "date") == 0) {
-								
 								//date
 								trpadding += render_date(ins->cairo,
 										ins->output->width - trpadding,
@@ -1052,6 +1055,12 @@ int main(int argc, char *argv[]) {
 										}
 									}
 								}
+							} else if(strcmp(module, "uptime") == 0) {
+								// uptime
+								uint32_t ut = sinfo.uptime;
+								trpadding += render_uptime(ins->cairo, ut,
+									ins->output->width - trpadding,
+									textheight, RIGHT);
 							}
 							// next module
 							ptr = ptr->next;
@@ -1076,7 +1085,6 @@ int main(int argc, char *argv[]) {
 
 				//control fps, 10fps is plenty
 				usleep(100000);
-
 		} //end main loop
 
 }

@@ -22,6 +22,7 @@
 #include <X11/Xft/Xft.h>
 #include <X11/extensions/Xrandr.h>
 #include <sys/socket.h>
+#include <sys/sysinfo.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/statvfs.h>
@@ -95,7 +96,7 @@
 // the valid configuration options for the config key 'modules' which does
 // not have any suffix.
 static char **valid_static = (char *[]){"fsone", "fstwo", "extip", "ifone", 
-				"iftwo", "date", "time", NULL};
+				"iftwo", "date", "time", "uptime", NULL};
 
 // the valid configuration options for the config key 'modules' which does
 // have a suffix like bat0 or therm1.

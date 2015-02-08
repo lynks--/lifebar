@@ -237,6 +237,31 @@ int render_alarm(cairo_t *cairo, uint32_t alarm_s, int x, int y, int d) {
 	return extents.width - 1;
 }
 
+int render_uptime(cairo_t *cairo, uint32_t ut_s, int x, int y, int d) {
+	char time_string[128];
+
+	uint16_t days = 0;
+	uint16_t hours = 0;
+	uint16_t minutes = 0;
+
+	while(ut_s >= 3600 * 24) { // days
+		days++;
+		ut_s -= 3600 * 24;
+	}
+	while(ut_s >= 3600) {
+		hours++;
+		ut_s -= 3600;
+	}
+	while(ut_s >= 60) {
+		minutes++;
+		ut_s -= 60;
+	}
+
+	sprintf(time_string, "%d days, %d hours, %d minutes", days, hours, minutes);
+
+	return render_keyvalue(cairo, x, y, "uptime", time_string, d);
+}
+
 int render_date(cairo_t *cairo, int x, int y, int d) {
 	time_t rawnow = time(NULL);
 	struct tm *now = localtime(&rawnow);
