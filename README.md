@@ -7,7 +7,7 @@ NOTE: this readme contains lies. not everything here is implemented yet! :(
 
 _Screenshot_
 
-![](http://88.198.68.167/images/lifebar_ss1.jpg)
+![](http://i.imgur.com/BkWbDp5.png)
 
 _Configuration_
 
