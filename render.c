@@ -73,8 +73,10 @@ int render_interface(cairo_t *c, int x, int y, struct ifaddrs *a,
 			//this loop ensures that we get no extreme values during the first
 			//few seconds of display. it finds the oldest value that has
 			//actually been written to, avoiding the zero values.
-			while(spd[old_index].down_bytes == 0)
+			while(spd[old_index].down_bytes == 0) {
 				old_index = (old_index + 1) % NET_SPEED_AVERAGE;
+				if(old_index == new_index) break;
+			}
 			float down = (float)
 							(spd[new_index].down_bytes -
 								spd[old_index].down_bytes)

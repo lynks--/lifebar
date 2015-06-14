@@ -29,6 +29,7 @@
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <arpa/inet.h>
 #include <cairo.h>
 #include <cairo-xlib.h>
 #include <time.h>
@@ -275,6 +276,8 @@ int render_workspace(cairo_t *, int, int, struct i3_workspace *, int);
 int render_time(cairo_t *, int, int, int);
 
 int render_alarm(cairo_t *, uint32_t, int, int, int);
+
+int render_uptime(cairo_t *, uint32_t, int, int, int);
 
 int render_date(cairo_t *, int, int, int);
 
