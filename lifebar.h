@@ -184,6 +184,7 @@ struct curl_writedata {
 struct config {
 	uint32_t position;				//TOP or BOTTOM
 	uint32_t depth;					//bar depth, eg 20
+	int32_t text_nudge;				//tweak text vertical centre
 	char datefmt[64];				//date strftime format string
 	char timefmt[64];				//time strftime format string
 	uint32_t rpadding;				//padding on right screen edge
@@ -192,6 +193,7 @@ struct config {
 	uint32_t divpadding;			//padding either side of divider lines
 	uint32_t divwidth;				//divider line width
 	uint32_t divstyle;				//divider line style (LINE or GROOVE)
+	uint32_t divgap;				//for line divider, gap to edge of bar
 	uint32_t wswrap;				//whether wsmousewheel wraps WSWRAP_ON/OFF
 	char ifone[32];					//interface name, eg eth0
 	char iftwo[32];					//interface name, eg eth0

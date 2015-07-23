@@ -10,6 +10,9 @@ position	bottom
 # thickness of the bar in pixels
 depth		21
 
+# tweak the vertical position of the text, negative for up
+text_nudge	0
+
 # network interface names used for reporting ip address information
 ifone		eth0
 #iftwo		wlan0
@@ -38,6 +41,9 @@ kvpadding	6
 
 # divider style, valid options are 'line' and 'groove'
 divstyle	line
+
+# for line divider, how far away from the edges should the line stop
+divgap		3
 
 # workspace mouse-wheel wrapping, valid options are 'on' and 'off
 wswrap		off

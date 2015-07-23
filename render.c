@@ -5,8 +5,9 @@ int render_divider(cairo_t *cairo, int x, int d) {
 		if(conf->divstyle == LINE) {
 			set_cairo_source_colour(cairo, conf->divcol);
 			cairo_rectangle(cairo,
-							x - (conf->divpadding + conf->divwidth), 3,
-							conf->divwidth, conf->depth - 6);
+							x - (conf->divpadding + conf->divwidth),
+							conf->divgap, conf->divwidth,
+							conf->depth - (conf->divgap * 2));
 			cairo_fill(cairo);
 			return (conf->divpadding * 2) + conf->divwidth + 1;
 		}
@@ -26,8 +27,9 @@ int render_divider(cairo_t *cairo, int x, int d) {
 		if(conf->divstyle == LINE) {
 			set_cairo_source_colour(cairo, conf->divcol);
 			cairo_rectangle(cairo,
-							x + conf->divpadding, 3,
-							conf->divwidth, conf->depth - 6);
+							x + conf->divpadding, conf->divgap,
+							conf->divwidth,
+							conf->depth - (conf->divgap));
 			cairo_fill(cairo);
 			return (conf->divpadding * 2) + conf->divwidth + 1;
 		}
@@ -162,7 +164,7 @@ int render_battery(cairo_t *c, int x, int y, struct batt_info *b, int d) {
 			sprintf(v_string, "full", b->index);
 			break;
 		case UNKNOWN:
-			sprintf(v_string, "status unknown");
+			sprintf(v_string, "idle %d%%", b->percent);
 	}
 
 	return render_keyvalue(c, x, y, k_string, v_string, d);

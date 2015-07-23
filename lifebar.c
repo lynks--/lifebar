@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
 		//first we set the defaults to avoid unset values
 		conf->position = BOTTOM;
 		conf->depth = 20;
+		conf->text_nudge = 0;
 		strcpy(conf->datefmt, "%A %e %B %Y");
 		strcpy(conf->timefmt, "%H:%M");
 		conf->rpadding = 10;
@@ -34,6 +35,7 @@ int main(int argc, char *argv[]) {
 		conf->divpadding = 10;
 		conf->divwidth = 1;
 		conf->divstyle = GROOVE;
+		conf->divgap = 0;
 		conf->wswrap = WSWRAP_OFF;
 		strcpy(conf->ifone, "eth0");
 		strcpy(conf->iftwo, "");
@@ -62,6 +64,7 @@ int main(int argc, char *argv[]) {
 		conf->timefontsize = default_font_size;
 		conf->wsfont = default_font;
 		conf->wsfontsize = default_font_size;
+		conf->modules = NULL;
 		conf->batt_alarm = 10;
 		conf->external = 1; // true by default
 
@@ -108,6 +111,10 @@ int main(int argc, char *argv[]) {
 							else fprintf(stderr,
 									"%sbad value for config key 'depth':%s\n",
 									BAD_MSG, value);
+						}
+						else if(strcmp(key, "text_nudge") == 0) {
+							int x = atoi(value);
+							conf->text_nudge = x;
 						}
 						else if(strcmp(key, "modules") == 0) {
 							char *part = NULL;
@@ -169,6 +176,13 @@ int main(int argc, char *argv[]) {
 								fprintf(stderr,
 								  "%sbad value for config key 'divstyle':%s\n",
 								  BAD_MSG, value);
+						}
+						else if(strcmp(key, "divgap") == 0) {
+							int x = atoi(value);
+							if(x > 0) conf->divgap = x;
+							else fprintf(stderr,
+									"%sbad value for config key 'divgap':%s\n",
+									BAD_MSG, value);
 						}
 						else if(strcmp(key, "wswrap") == 0) {
 							if(strcmp(value, "on") == 0)
@@ -501,7 +515,8 @@ int main(int argc, char *argv[]) {
 		uint32_t textheight = 0;
 		cairo_text_extents_t extents;
 		cairo_text_extents(instance_list->cairo, "ABCDEFG", &extents);
-		textheight = conf->depth - ((conf->depth - extents.height) / 2);
+		textheight =
+			conf->depth - ((conf->depth-extents.height) / 2) + conf->text_nudge;
 
 		//detect acpi power sources
 		int batt_count = count_acpi_batteries();
