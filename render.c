@@ -29,7 +29,7 @@ int render_divider(cairo_t *cairo, int x, int d) {
 			cairo_rectangle(cairo,
 							x + conf->divpadding, conf->divgap,
 							conf->divwidth,
-							conf->depth - (conf->divgap));
+							conf->depth - (conf->divgap * 2));
 			cairo_fill(cairo);
 			return (conf->divpadding * 2) + conf->divwidth + 1;
 		}
