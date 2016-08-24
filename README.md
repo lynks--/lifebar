@@ -1,11 +1,11 @@
 lifebar
 =======
 
-**Lifebar - i3wm workspace status and tool bar for Linux**
+**Lifebar - i3wm transparent workspace status and tool bar for Linux**
 
 _Screenshot_
 
-![](http://i.imgur.com/BkWbDp5.png)
+![](http://i.imgur.com/7MhFzN6.jpg)
 
 _Configuration_
 
