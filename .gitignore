@@ -1,2 +1,6 @@
+# the main binary
 lifebar
 core
+
+# compiled but not linked objects
+*.o
